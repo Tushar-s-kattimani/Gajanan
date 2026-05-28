@@ -11,16 +11,6 @@ import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
 
 
-function getCleanImageUrl(url?: string): string {
-  if (!url) return '';
-  let clean = url.trim().replace(/^"|"$/g, '').replace(/\\/g, '/');
-  const publicIndex = clean.toLowerCase().indexOf('/public/');
-  if (publicIndex !== -1) {
-    return clean.substring(publicIndex + 7);
-  }
-  return clean;
-}
-
 export function NewOrder({ products: initialProducts = [], loading }: { products: any[], loading: boolean }) {
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
@@ -71,17 +61,21 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                 {products.map((product) => {
                    return (
                     <Card key={product.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                       <div className="relative h-48 w-full bg-gray-50 flex items-center justify-center border-b">
-                             {product.imageUrl && getCleanImageUrl(product.imageUrl) && !getCleanImageUrl(product.imageUrl).startsWith('file:///') && !getCleanImageUrl(product.imageUrl).match(/^[a-zA-Z]:\//) ? (
-                                 <img
-                                     src={getCleanImageUrl(product.imageUrl)}
-                                     alt={product.name}
-                                     className="max-h-full max-w-full object-contain p-2"
-                                 />
-                             ) : (
-                                 <ImageIcon className="h-16 w-16 text-gray-300" />
-                             )}
-                       </div>
+                       <div className="relative h-40 w-full bg-gray-100 flex items-center justify-center">
+                            {product.imageUrl ? (
+                                <Image
+                                    src={product.imageUrl}
+                                    alt={product.name}
+                                    width={400}
+                                    height={400}
+                                    objectFit="contain"
+                                    className="p-2"
+                                    data-ai-hint={product['data-ai-hint']}
+                                />
+                            ) : (
+                                <ImageIcon className="h-12 w-12 text-gray-300" />
+                            )}
+                      </div>
                       <div className="p-4 flex flex-col flex-grow">
                           <h3 className="font-bold text-lg">{product.name}</h3>
                           <p className="text-sm text-muted-foreground">{product.size}</p>

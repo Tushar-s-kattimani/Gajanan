@@ -2,14 +2,15 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+// IMPORTANT: Replace with your actual Supabase project URL and anon key
+const supabaseUrl = "https://supabase.com/dashboard/project/hgjdvmhzmeejivpkkoao/storage/files/buckets/tushar";
+const supabaseAnonKey = "hgjdvmhzmeejivpkkoao";
 
-if (!supabaseUrl) {
-    console.error("Supabase URL is not configured. Please add NEXT_PUBLIC_SUPABASE_URL to your environment variables.");
+if (!supabaseUrl || supabaseUrl === "https://supabase.com/dashboard/project/hgjdvmhzmeejivpkkoao/storage/files/buckets/tushar") {
+    console.error("Supabase URL is not configured. Please add it to src/supabase/config.ts");
 }
-if (!supabaseAnonKey) {
-    console.error("Supabase anon key is not configured. Please add NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables.");
+if (!supabaseAnonKey || supabaseAnonKey === "hgjdvmhzmeejivpkkoao") {
+    console.error("Supabase anon key is not configured. Please add it to src/supabase/config.ts");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient("https://supabase.com/dashboard/project/hgjdvmhzmeejivpkkoao/storage/files/buckets/tushar", "hgjdvmhzmeejivpkkoao");

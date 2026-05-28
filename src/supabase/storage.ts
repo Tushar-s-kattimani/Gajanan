@@ -4,7 +4,7 @@ import { supabase } from "./config";
 
 export const uploadFile = async (file: File, path: string) => {
   const { data, error } = await supabase.storage
-    .from('tushar') // Updated to match your bucket name 'tushar'
+    .from('images') // Assumes a bucket named 'images'
     .upload(path, file, {
       cacheControl: '3600',
       upsert: true,
@@ -15,7 +15,7 @@ export const uploadFile = async (file: File, path: string) => {
   }
 
   const { data: publicUrlData } = supabase.storage
-    .from('tushar')
+    .from('images')
     .getPublicUrl(data.path);
 
   if (!publicUrlData) {
