@@ -35,6 +35,7 @@ import { useCollection } from '@/firebase';
 import { Loader2, PackagePlus, GripVertical, Save, Trash, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
+import { uploadFile as uploadToSupabase } from '@/supabase/storage';
 
 
 function getCleanImageUrl(url?: string): string {
@@ -149,10 +150,7 @@ export function ProductManagement() {
   }
 
   const uploadFile = async (file: File, path: string): Promise<string> => {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const downloadUrl = await getDownloadURL(storageRef);
-    return downloadUrl;
+    return await uploadToSupabase(file, path);
   };
 
   const onSubmit = async (data: ProductFormValues) => {

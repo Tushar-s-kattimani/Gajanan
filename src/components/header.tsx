@@ -83,8 +83,8 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         for (const item of cart) {
           const productRef = doc(db, 'products', item.id);
           const productSnap = await transaction.get(productRef);
-          if (!productSnap.exists() || productSnap.data().stock < item.quantity) {
-            throw new Error(`Insufficient stock for ${item.name}. Only ${productSnap.data().stock} left.`);
+          if (!productSnap.exists() || (productSnap.data()?.stock ?? 0) < item.quantity) {
+            throw new Error(`Insufficient stock for ${item.name}. Only ${productSnap.data()?.stock ?? 0} left.`);
           }
         }
         
