@@ -1,0 +1,44 @@
+{
+  "products": [
+    {
+      "id": "pepsi-bottle-1",
+      "src": "https://picsum.photos/seed/101/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-2",
+      "src": "https://picsum.photos/seed/102/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-3",
+      "src": "https://picsum.photos/seed/103/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-4",
+      "src": "https://picsum.photos/seed/104/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-5",
+      "src": "https://picsum.photos/seed/105/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-6",
+      "src": "https://picsum.photos/seed/106/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-7",
+      "src": "https://picsum.photos/seed/107/400/400",
+      "hint": "soda bottle"
+    },
+    {
+      "id": "pepsi-bottle-8",
+      "src": "https://picsum.photos/seed/108/400/400",
+      "hint": "soda bottle"
+    }
+  ]
+}

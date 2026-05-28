@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user in the system.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique ID of the user."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user, e.g., 'admin' or 'shop'.",
+          "enum": ["admin", "shop"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the user was created."
+        },
+        "profileName": {
+            "type": "string",
+            "description": "The name of the user."
+        },
+        "phoneNumber": {
+            "type": "string",
+            "description": "The phone number of the user."
+        },
+        "shopName": {
+            "type": "string",
+            "description": "The name of the shop."
+        },
+        "location": {
+            "type": "string",
+            "description": "The location of the shop."
+        },
+        "upiId": {
+          "type": "string",
+          "description": "The UPI ID of the admin user for receiving payments."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the user's profile image."
+        }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Represents a product in the inventory.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "size": {
+          "type": "string",
+          "description": "The size of the product (e.g., '250ml', '1L')."
+        },
+        "stock": {
+          "type": "number",
+          "description": "The current stock level of the product."
+        },
+        "position": {
+          "type": "number",
+          "description": "The order of the product in the list."
+        },
+        "rate": {
+          "type": "number",
+          "description": "The price or rate of the product."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the product image."
+        }
+      },
+      "required": ["name", "size", "stock", "position", "rate"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Represents an order placed by a shop.",
+      "type": "object",
+      "properties": {
+        "shopId": {
+          "type": "string",
+          "description": "The UID of the shop that placed the order."
+        },
+        "shopEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "The email of the shop that placed the order."
+        },
+        "items": {
+          "type": "array",
+          "description": "An array of items included in the order.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "size": { "type": "string" },
+              "quantity": { "type": "number" },
+              "rate": { "type": "number" }
+            },
+            "required": ["id", "name", "size", "quantity", "rate"]
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the order.",
+          "enum": ["Pending", "Confirmed", "Delivered"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the order was placed."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "The method used for payment.",
+          "enum": ["Cash on Delivery", "Online"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "The status of the payment.",
+          "enum": ["Pending", "Paid"]
+        }
+      },
+      "required": ["shopId", "items", "status", "createdAt", "paymentMethod", "paymentStatus"]
+    },
+    "Laborer": {
+      "title": "Laborer",
+      "description": "Represents a laborer available for work.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the laborer."
+        },
+        "trade": {
+          "type": "string",
+          "description": "The trade or skill of the laborer (e.g., 'Electrician', 'Plumber')."
+        }
+      },
+      "required": ["name", "trade"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Represents a daily attendance record for a laborer.",
+      "type": "object",
+      "properties": {
+        "laborerId": {
+          "type": "string",
+          "description": "The ID of the laborer this record belongs to."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "The specific date of this attendance record (YYYY-MM-DD)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Present", "Absent", "Half-day"],
+          "description": "The attendance status for the day."
+        },
+        "checkIn": {
+          "type": "string",
+          "format": "time",
+          "description": "The time the laborer checked in."
+        }
+      },
+      "required": ["laborerId", "date", "status"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profile information, including their role."
+    },
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Stores all available products for the distribution system."
+    },
+    "/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/Order"
+      },
+      "description": "Stores all orders placed by shops."
+    },
+    "/laborers/{laborerId}": {
+      "schema": {
+        "$ref": "#/entities/Laborer"
+      },
+      "description": "Stores information about individual laborers."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": {
+        "$ref": "#/entities/Attendance"
+      },
+      "description": "Stores daily attendance records for all laborers."
+    }
+  }
+}

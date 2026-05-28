@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user has the 'admin' role
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper function to check if the user is the owner of the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Allow any authenticated user to read user profiles.
+      // This is necessary for shops to fetch admin details (like UPI ID).
+      allow read: if request.auth != null;
+      
+      // Only the owner or an admin can write to a user document.
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Rules for the 'products' collection
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      // Allow write for admins.
+      allow write: if isAdmin();
+    }
+
+    // Rules for the 'orders' collection
+    match /orders/{orderId} {
+      // Allow read if admin or the order belongs to the user
+      allow read: if isAdmin() || (request.auth != null && resource.data.shopId == request.auth.uid);
+
+      // Allow create if the user is authenticated, creating their own order, and the timestamp is valid.
+      allow create: if request.auth != null &&
+                    request.resource.data.shopId == request.auth.uid &&
+                    request.resource.data.status == "Pending" &&
+                    request.resource.data.createdAt == request.time;
+
+      // Admins can update orders (e.g., change status)
+      // Shops should not be able to update their own orders after placing them.
+      allow update: if isAdmin();
+      
+      // Only admins can delete orders
+      allow delete: if isAdmin();
+    }
+
+    // Rules for 'laborers' and 'attendance' collections
+    match /laborers/{laborerId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
