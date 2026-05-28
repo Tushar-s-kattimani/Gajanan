@@ -37,6 +37,16 @@ import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
 
 
+function getCleanImageUrl(url?: string): string {
+  if (!url) return '';
+  let clean = url.trim().replace(/^"|"$/g, '').replace(/\\/g, '/');
+  const publicIndex = clean.toLowerCase().indexOf('/public/');
+  if (publicIndex !== -1) {
+    return clean.substring(publicIndex + 7);
+  }
+  return clean;
+}
+
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   size: z.string().min(1, 'Product size is required'),
@@ -71,9 +81,9 @@ const SortableItem = ({ product, handleOpenDialog }: { product: any, handleOpenD
       <div {...attributes} {...listeners} className="cursor-grab p-2 touch-none">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
-       <div className="relative h-12 w-12 mr-4 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
-        {product.imageUrl ? (
-            <Image src={product.imageUrl} alt={product.name} layout="fill" objectFit="contain" data-ai-hint="soda bottle" />
+       <div className="relative h-12 w-12 mr-4 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+        {product.imageUrl && getCleanImageUrl(product.imageUrl) && !getCleanImageUrl(product.imageUrl).startsWith('file:///') && !getCleanImageUrl(product.imageUrl).match(/^[a-zA-Z]:\//) ? (
+            <img src={getCleanImageUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-contain" />
         ) : (
             <ImageIcon className="h-6 w-6 text-gray-400" />
         )}
@@ -147,11 +157,27 @@ export function ProductManagement() {
 
   const onSubmit = async (data: ProductFormValues) => {
     setIsSubmitting(true);
-    let finalImageUrl = editingProduct?.imageUrl || '';
+    let finalImageUrl = data.imageUrl?.trim() || editingProduct?.imageUrl || '';
     
     try {
-       if (imageFile) {
+      if (imageFile) {
         finalImageUrl = await uploadFile(imageFile, `products/${Date.now()}_${imageFile.name}`);
+      } else if (finalImageUrl) {
+        // Clean up the pasted image URL if it is a local path
+        finalImageUrl = finalImageUrl.replace(/^"|"$/g, '').replace(/\\/g, '/');
+        const publicIndex = finalImageUrl.toLowerCase().indexOf('/public/');
+        if (publicIndex !== -1) {
+          finalImageUrl = finalImageUrl.substring(publicIndex + 7);
+        } else if (finalImageUrl.startsWith('file:///') || finalImageUrl.match(/^[a-zA-Z]:\//)) {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid Local Path',
+            description: 'Browsers block loading files from outside the project. Please place your image in the "public" folder first and use a relative path like /image.png.',
+            duration: 7000,
+          });
+          setIsSubmitting(false);
+          return;
+        }
       }
       
       const productData = { ...data, imageUrl: finalImageUrl };
@@ -254,20 +280,32 @@ export function ProductManagement() {
               </DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                  <div>
-                    <Label htmlFor="image">Product Image</Label>
+                    <Label htmlFor="image">Upload Product Image</Label>
                     <Input id="image" type="file" onChange={(e) => setImageFile(e.target.files?.[0] || null)} accept="image/*" />
-                    {(currentImageUrl || imageFile) && (
-                        <div className="mt-4 relative w-24 h-24 rounded-md border bg-gray-100">
-                             <Image
-                                src={imageFile ? URL.createObjectURL(imageFile) : currentImageUrl}
-                                alt="Product Preview"
-                                layout="fill"
-                                objectFit="contain"
-                                className="rounded-md"
-                            />
-                        </div>
-                    )}
                  </div>
+                 <div>
+                    <Label htmlFor="imageUrl">Or Paste Product Image URL / Path</Label>
+                    <Input id="imageUrl" placeholder="e.g. /pepsi.png or https://example.com/image.png" {...register('imageUrl')} />
+                 </div>
+                 {(currentImageUrl || imageFile) && (
+                     <div className="mt-4 relative w-24 h-24 rounded-md border bg-gray-100 flex items-center justify-center">
+                          {imageFile ? (
+                              <img
+                                 src={URL.createObjectURL(imageFile)}
+                                 alt="Product Preview"
+                                 className="max-h-full max-w-full object-contain p-1 rounded-md"
+                              />
+                          ) : (
+                              currentImageUrl && !currentImageUrl.startsWith('file:///') && !currentImageUrl.match(/^[a-zA-Z]:\//) && (
+                                  <img
+                                     src={getCleanImageUrl(currentImageUrl)}
+                                     alt="Product Preview"
+                                     className="max-h-full max-w-full object-contain p-1 rounded-md"
+                                  />
+                              )
+                          )}
+                     </div>
+                 )}
                 <div>
                   <Label htmlFor="name">Product Name</Label>
                   <Input id="name" {...register('name')} />
