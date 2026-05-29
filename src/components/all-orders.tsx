@@ -147,7 +147,13 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       
     doc.text(title, 14, 15);
 
-    const groupedOrders: { [key: string]: { date: string, shopName: string, items: { [key: string]: number } } } = {};
+    const groupedOrders: { 
+      [key: string]: { 
+        date: string; 
+        shopName: string; 
+        items: { [key: string]: { name: string; size: string; quantity: number } } 
+      } 
+    } = {};
 
     filteredOrdersList.forEach(order => {
       const shopInfo = usersMap.get(order.shopId);
@@ -166,26 +172,36 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       
       const group = groupedOrders[key];
       order.items.forEach((item: any) => {
-        const itemKey = `${item.name} (${item.size})`;
-        group.items[itemKey] = (group.items[itemKey] || 0) + item.quantity;
+        const itemKey = `${item.name}_${item.size}`;
+        if (!group.items[itemKey]) {
+          group.items[itemKey] = {
+            name: item.name,
+            size: item.size,
+            quantity: 0
+          };
+        }
+        group.items[itemKey].quantity += item.quantity;
       });
     });
 
     const tableBody = Object.values(groupedOrders).map(group => {
-      const orderDetails = Object.keys(group.items).join('\n');
-      const quantities = Object.values(group.items).join('\n');
+      const itemsArray = Object.values(group.items);
+      const orderNames = itemsArray.map(item => item.name).join('\n');
+      const orderSizes = itemsArray.map(item => item.size).join('\n');
+      const quantities = itemsArray.map(item => item.quantity).join('\n');
       
       return [
         group.date,
         group.shopName,
-        orderDetails,
+        orderNames,
+        orderSizes,
         quantities
       ];
     });
 
     (doc as any).autoTable({
       startY: 20,
-      head: [['Date', 'Shop Name', 'Order', 'Quantity']],
+      head: [['Date', 'Shop Name', 'Order', 'Size', 'Quantity']],
       body: tableBody,
       theme: 'grid',
       styles: { valign: 'middle' },
