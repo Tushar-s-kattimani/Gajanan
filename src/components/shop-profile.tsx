@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, getDocs, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -67,27 +67,49 @@ export function ShopProfile() {
 
   useEffect(() => {
     if (!user) return;
-    // Query the admin user document — readable by all authenticated users per existing Firestore rules
-    const usersRef = collection(db, 'users');
-    const adminQuery = query(usersRef, where('role', '==', 'admin'));
-    const unsubscribe = onSnapshot(adminQuery, (snapshot) => {
-      let found: string[] = [];
-      for (const d of snapshot.docs) {
-        const data = d.data();
-        if (Array.isArray(data.locations) && data.locations.length > 0) {
-          found = data.locations;
-          break;
+
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const setupListener = async () => {
+      try {
+        // Step 1: Find the admin user's UID by querying role == 'admin'
+        const usersRef = collection(db, 'users');
+        const adminQuery = query(usersRef, where('role', '==', 'admin'));
+        const snapshot = await getDocs(adminQuery);
+
+        if (snapshot.empty) {
+          setLocationOptions([]);
+          setLoadingLocations(false);
+          return;
         }
+
+        const adminDocId = snapshot.docs[0].id;
+
+        // Step 2: Subscribe directly to that specific admin doc for real-time updates
+        const adminDocRef = doc(db, 'users', adminDocId);
+        unsubscribeDoc = onSnapshot(adminDocRef, (adminDoc) => {
+          if (adminDoc.exists()) {
+            setLocationOptions(adminDoc.data().locations || []);
+          } else {
+            setLocationOptions([]);
+          }
+          setLoadingLocations(false);
+        }, (error) => {
+          console.error('Error listening to admin locations:', error);
+          setLocationOptions([]);
+          setLoadingLocations(false);
+        });
+      } catch (error) {
+        console.error('Error setting up location listener:', error);
+        setLocationOptions([]);
+        setLoadingLocations(false);
       }
-      setLocationOptions(found);
-      setLoadingLocations(false);
-    }, (error) => {
-      console.error('Error listening to locations:', error);
-      setLocationOptions([]);
-      setLoadingLocations(false);
-    });
-    return () => unsubscribe();
+    };
+
+    setupListener();
+    return () => { if (unsubscribeDoc) unsubscribeDoc(); };
   }, [user]);
+
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) {
