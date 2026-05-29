@@ -26,7 +26,21 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
   const { toast } = useToast();
   const [orders, setOrders] = useState(initialOrders);
   const [statusFilter, setStatusFilter] = useState<'all' | 'Pending'>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
 
+  const locations = useMemo(() => {
+    const adminUser = users.find(u => u.role === 'admin');
+    if (adminUser && adminUser.locations && Array.isArray(adminUser.locations)) {
+      return adminUser.locations.filter(Boolean);
+    }
+    const locSet = new Set<string>();
+    users.forEach(u => {
+      if (u.role === 'shop' && u.location) {
+        locSet.add(u.location.trim());
+      }
+    });
+    return Array.from(locSet).filter(Boolean).sort();
+  }, [users]);
 
   useEffect(() => {
     setOrders(initialOrders.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis()));
@@ -50,13 +64,23 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     return map;
   }, [users]);
   
-  const ordersByDate = useMemo(() => {
-    const filteredOrders = statusFilter === 'all' 
+  const filteredOrdersList = useMemo(() => {
+    let list = statusFilter === 'all' 
       ? orders 
       : orders.filter(order => order.status === 'Pending');
 
+    if (locationFilter !== 'all') {
+      list = list.filter(order => {
+        const shopInfo = usersMap.get(order.shopId);
+        return shopInfo && shopInfo.location === locationFilter;
+      });
+    }
+    return list;
+  }, [orders, usersMap, statusFilter, locationFilter]);
+
+  const ordersByDate = useMemo(() => {
     const groupedByDate: { [key: string]: any[] } = {};
-    filteredOrders.forEach(order => {
+    filteredOrdersList.forEach(order => {
         if (!order.createdAt?.toDate) return;
         const dateStr = order.createdAt.toDate().toLocaleDateString('en-CA'); // YYYY-MM-DD
         if (!groupedByDate[dateStr]) {
@@ -95,13 +119,13 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     });
 
     return processedData.sort((a, b) => b.date.localeCompare(a.date));
-  }, [orders, usersMap, statusFilter]);
+  }, [filteredOrdersList, usersMap]);
 
   const handleDownload = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Date,Order ID,Shop Name,Phone Number,Location,Product Name,Size,Quantity,Rate,Amount,Status,Payment Method,Payment Status\r\n";
 
-    orders.forEach((order) => {
+    filteredOrdersList.forEach((order) => {
         const shopInfo = usersMap.get(order.shopId);
         if(!shopInfo) return;
         order.items.forEach((item: any) => {
@@ -143,6 +167,19 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 no-print">
         <CardTitle>All Customer Orders</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
+            <Select onValueChange={(value) => setLocationFilter(value)} value={locationFilter}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {locations.map((loc: string) => (
+                  <SelectItem key={loc} value={loc}>
+                    {loc}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button 
                 onClick={() => setStatusFilter('all')} 
                 variant={statusFilter === 'all' ? 'default' : 'outline'} 
