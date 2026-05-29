@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Input } from '@/components/ui/input';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,6 +30,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
   const [orders, setOrders] = useState(initialOrders);
   const [statusFilter, setStatusFilter] = useState<'all' | 'Pending'>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('');
 
   const locations = useMemo(() => {
     const adminUser = users.find(u => u.role === 'admin');
@@ -77,8 +79,21 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
         return shopInfo && shopInfo.location === locationFilter;
       });
     }
+
+    if (dateFilter) {
+      const selectedDay = new Date(dateFilter + 'T00:00:00');
+      const startOfDay = selectedDay.getTime();
+      const endOfDay = new Date(selectedDay).setHours(23, 59, 59, 999);
+      
+      list = list.filter(order => {
+        if (!order.createdAt?.toMillis) return false;
+        const ms = order.createdAt.toMillis();
+        return ms >= startOfDay && ms <= endOfDay;
+      });
+    }
+
     return list;
-  }, [orders, usersMap, statusFilter, locationFilter]);
+  }, [orders, usersMap, statusFilter, locationFilter, dateFilter]);
 
   const ordersByDate = useMemo(() => {
     const groupedByDate: { [key: string]: any[] } = {};
@@ -123,41 +138,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     return processedData.sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredOrdersList, usersMap]);
 
-  const handleDownload = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Date,Order ID,Shop Name,Phone Number,Location,Product Name,Size,Quantity,Rate,Amount,Status,Payment Method,Payment Status\r\n";
 
-    filteredOrdersList.forEach((order) => {
-        const shopInfo = usersMap.get(order.shopId);
-        if(!shopInfo) return;
-        order.items.forEach((item: any) => {
-             const row = [
-                `"${order.createdAt?.toDate().toLocaleDateString()}"`,
-                `"${order.id}"`,
-                `"${shopInfo.shopName || ''}"`,
-                `"${shopInfo.phoneNumber || ''}"`,
-                `"${shopInfo.location || ''}"`,
-                `"${item.name}"`,
-                `"${item.size}"`,
-                item.quantity,
-                item.rate,
-                item.quantity * (item.rate || 0),
-                order.status,
-                order.paymentMethod || 'N/A',
-                order.paymentStatus || 'N/A',
-            ].join(',');
-            csvContent += row + "\r\n";
-        });
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "orders_report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
   
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
@@ -234,6 +215,24 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-1">
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-[140px] h-9 bg-white"
+              />
+              {dateFilter && (
+                <Button
+                  onClick={() => setDateFilter('')}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-1.5 text-red-500 hover:text-red-700 hover:bg-transparent"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
             <Button 
                 onClick={() => setStatusFilter('all')} 
                 variant={statusFilter === 'all' ? 'default' : 'outline'} 
@@ -248,10 +247,6 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
             >
                 <Filter className="mr-2 h-4 w-4" />
                 Pending
-            </Button>
-            <Button onClick={handleDownload} variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" />
-              Report
             </Button>
             <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={filteredOrdersList.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
