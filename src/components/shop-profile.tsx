@@ -26,14 +26,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const DEFAULT_LOCATIONS = [
-  "Sector 1",
-  "Sector 2",
-  "Sector 3",
-  "Sector 4",
-  "Sector 5"
-];
-
 export function ShopProfile() {
   const { user } = useUser();
   const { toast } = useToast();
@@ -95,24 +87,17 @@ export function ShopProfile() {
           }
         }
       }
-      if (foundLocations.length > 0) {
-        console.log("Real-time locations loaded from admin settings:", foundLocations);
-        setLocationOptions(foundLocations);
-      } else {
-        console.log("No locations found in admin settings. Using defaults:", DEFAULT_LOCATIONS);
-        setLocationOptions(DEFAULT_LOCATIONS);
-      }
+      console.log("Real-time locations loaded from admin settings:", foundLocations);
+      setLocationOptions(foundLocations);
       setLoadingLocations(false);
     }, (error) => {
       console.error("Error listening to locations:", error);
-      setLocationOptions(DEFAULT_LOCATIONS);
+      setLocationOptions([]);
       setLoadingLocations(false);
     });
 
     return () => unsubscribe();
   }, []);
-
-  const currentLocation = watch('location');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -213,17 +198,11 @@ export function ShopProfile() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">Select a location</option>
-                {(() => {
-                  const showLocationOptions = [...locationOptions];
-                  if (currentLocation && !showLocationOptions.includes(currentLocation)) {
-                    showLocationOptions.unshift(currentLocation);
-                  }
-                  return showLocationOptions.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc}
-                    </option>
-                  ));
-                })()}
+                {locationOptions.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
               </select>
             )}
             {errors.location && <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>}
