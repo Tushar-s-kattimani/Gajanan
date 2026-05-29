@@ -4,7 +4,7 @@ import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PlusCircle, Trash2, Plus, Minus, ShoppingBasket, Image as ImageIcon } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Plus, Minus, ShoppingBasket, Image as ImageIcon, Megaphone } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -83,7 +83,21 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((product) => {
                    return (
-                    <Card key={product.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                    <Card key={product.id} className={`flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 ${
+                        product.isAd
+                          ? 'ad-card ring-2 ring-amber-400'
+                          : 'hover:shadow-xl'
+                      }`}>
+                      {product.isAd && (
+                        <div className="ad-banner flex items-center justify-center gap-2 text-white text-xs font-black py-2 px-3 tracking-widest uppercase">
+                          <span className="ad-star text-base">⭐</span>
+                          <span className="ad-badge inline-flex items-center gap-1">
+                            <Megaphone className="h-3 w-3" />
+                            Featured Deal
+                          </span>
+                          <span className="ad-star text-base">⭐</span>
+                        </div>
+                      )}
                        <div className="relative h-48 w-full bg-gray-50 flex items-center justify-center border-b">
                             {product.imageUrl && !product.imageUrl.startsWith('file:///') && !product.imageUrl.match(/^[a-zA-Z]:\//) ? (
                                 <img
@@ -99,6 +113,14 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                       <div className="p-4 flex flex-col flex-grow">
                           <h3 className="font-bold text-lg">{product.name}</h3>
                           <p className="text-sm text-muted-foreground">{product.size}</p>
+                          {product.rate != null && (
+                            <p className={`text-base font-semibold mt-1 ${
+                              product.isAd ? 'text-orange-500 text-lg' : 'text-primary'
+                            }`}>
+                              ₹{Number(product.rate).toLocaleString('en-IN')}
+                              {product.isAd && <span className="ml-1 text-xs font-bold text-red-500 animate-pulse">🔥 HOT</span>}
+                            </p>
+                          )}
                           <div className="flex-grow"></div>
                           <div className="mt-4 text-sm">
                             <span className={`font-semibold ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>

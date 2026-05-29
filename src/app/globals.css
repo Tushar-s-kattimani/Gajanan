@@ -110,3 +110,71 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ── Featured / Ad Product Animations ── */
+
+@keyframes ad-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.4), 0 0 20px 6px rgba(251, 191, 36, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 18px 6px rgba(251, 191, 36, 0.7), 0 0 40px 12px rgba(251, 191, 36, 0.25);
+  }
+}
+
+@keyframes ad-banner-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes ad-badge-bounce {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes ad-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-4px) rotate(-1deg); }
+  66% { transform: translateY(-2px) rotate(1deg); }
+}
+
+@keyframes ad-star-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.ad-card {
+  animation: ad-glow-pulse 2s ease-in-out infinite, ad-float 4s ease-in-out infinite;
+}
+
+.ad-banner {
+  background: linear-gradient(
+    90deg,
+    #f59e0b 0%,
+    #ef4444 25%,
+    #f59e0b 50%,
+    #fb923c 75%,
+    #f59e0b 100%
+  );
+  background-size: 200% auto;
+  animation: ad-banner-shimmer 2.5s linear infinite;
+}
+
+.ad-badge {
+  animation: ad-badge-bounce 1.2s ease-in-out infinite;
+}
+
+.ad-star {
+  animation: ad-star-spin 3s linear infinite;
+}
+
+@keyframes animate-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-blink {
+  animation: animate-blink 1.2s ease-in-out infinite;
+}
+

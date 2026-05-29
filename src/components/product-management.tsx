@@ -32,7 +32,7 @@ import { addDoc, collection, doc, updateDoc, deleteDoc, writeBatch, query, order
 import { db, storage } from '@/firebase/config';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useCollection } from '@/firebase';
-import { Loader2, PackagePlus, GripVertical, Save, Trash, Image as ImageIcon } from 'lucide-react';
+import { Loader2, PackagePlus, GripVertical, Save, Trash, Image as ImageIcon, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
 
@@ -68,7 +68,7 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
-const SortableItem = ({ product, handleOpenDialog }: { product: any, handleOpenDialog: (p: any) => void }) => {
+const SortableItem = ({ product, handleOpenDialog, handleToggleAd }: { product: any, handleOpenDialog: (p: any) => void, handleToggleAd: (p: any) => void }) => {
   const {
     attributes,
     listeners,
@@ -86,7 +86,9 @@ const SortableItem = ({ product, handleOpenDialog }: { product: any, handleOpenD
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center bg-white p-3 my-2 rounded-lg shadow-sm border"
+      className={`flex items-center p-3 my-2 rounded-lg shadow-sm border transition-colors ${
+        product.isAd ? 'bg-amber-50 border-amber-300' : 'bg-white'
+      }`}
     >
       <div {...attributes} {...listeners} className="cursor-grab p-2 touch-none">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
@@ -99,12 +101,30 @@ const SortableItem = ({ product, handleOpenDialog }: { product: any, handleOpenD
         )}
       </div>
       <div className="flex-grow grid grid-cols-4 gap-4 items-center">
-        <div className="font-medium truncate">{product.name}</div>
+        <div className="font-medium truncate flex items-center gap-2">
+          {product.name}
+          {product.isAd && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+              <Megaphone className="h-3 w-3" /> Ad
+            </span>
+          )}
+        </div>
         <div className="truncate">{product.size}</div>
         <div>{product.rate?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) ?? 'N/A'}</div>
         <div>{product.stock}</div>
       </div>
-      <Button variant="outline" size="sm" onClick={() => handleOpenDialog(product)}>Edit</Button>
+      <div className="flex items-center gap-2 ml-2">
+        <Button
+          variant={product.isAd ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleToggleAd(product)}
+          className={product.isAd ? 'bg-amber-500 hover:bg-amber-600 border-amber-500 text-white' : ''}
+          title={product.isAd ? 'Remove from Ads' : 'Mark as Ad'}
+        >
+          <Megaphone className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => handleOpenDialog(product)}>Edit</Button>
+      </div>
     </div>
   );
 };
@@ -235,6 +255,21 @@ export function ProductManagement() {
     }
   };
 
+  const handleToggleAd = async (product: any) => {
+    try {
+      const productRef = doc(db, 'products', product.id);
+      await updateDoc(productRef, { isAd: !product.isAd });
+      toast({
+        title: !product.isAd ? 'Marked as Ad' : 'Removed from Ads',
+        description: !product.isAd
+          ? `"${product.name}" will now be highlighted for customers.`
+          : `"${product.name}" is no longer highlighted.`,
+      });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
+  };
+
   const handleSaveOrder = async () => {
     setIsSavingOrder(true);
     try {
@@ -350,7 +385,7 @@ export function ProductManagement() {
                 onDragEnd={handleDragEnd}
             >
                 <SortableContext items={products} strategy={verticalListSortingStrategy}>
-                {products.map(product => <SortableItem key={product.id} product={product} handleOpenDialog={handleOpenDialog} />)}
+                {products.map(product => <SortableItem key={product.id} product={product} handleOpenDialog={handleOpenDialog} handleToggleAd={handleToggleAd} />)}
                 </SortableContext>
             </DndContext>
           </div>
