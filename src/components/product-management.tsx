@@ -40,10 +40,20 @@ import placeholderImageData from '@/lib/placeholder-images.json';
 function getCleanImageUrl(url?: string): string {
   if (!url) return '';
   let clean = url.trim().replace(/^"|"$/g, '').replace(/\\/g, '/');
-  const publicIndex = clean.toLowerCase().indexOf('/public/');
-  if (publicIndex !== -1) {
-    return clean.substring(publicIndex + 7);
+  
+  if (clean.startsWith('public/')) {
+    clean = clean.substring(6); // remove "public" so it starts with "/"
+  } else {
+    const publicIndex = clean.toLowerCase().indexOf('/public/');
+    if (publicIndex !== -1) {
+      clean = clean.substring(publicIndex + 7);
+    }
   }
+  
+  if (clean && !clean.startsWith('/') && !clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:')) {
+    clean = '/' + clean;
+  }
+  
   return clean;
 }
 
