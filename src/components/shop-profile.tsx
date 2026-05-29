@@ -26,6 +26,14 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const DEFAULT_LOCATIONS = [
+  "Sector 1",
+  "Sector 2",
+  "Sector 3",
+  "Sector 4",
+  "Sector 5"
+];
+
 export function ShopProfile() {
   const { user } = useUser();
   const { toast } = useToast();
@@ -77,15 +85,24 @@ export function ShopProfile() {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("role", "==", "admin"));
         const querySnapshot = await getDocs(q);
+        let foundLocations: string[] = [];
         if (!querySnapshot.empty) {
-          const adminDoc = querySnapshot.docs[0];
-          const adminData = adminDoc.data();
-          if (adminData.locations && Array.isArray(adminData.locations)) {
-            setLocationOptions(adminData.locations);
+          for (const doc of querySnapshot.docs) {
+            const adminData = doc.data();
+            if (adminData.locations && Array.isArray(adminData.locations) && adminData.locations.length > 0) {
+              foundLocations = adminData.locations;
+              break;
+            }
           }
+        }
+        if (foundLocations.length > 0) {
+          setLocationOptions(foundLocations);
+        } else {
+          setLocationOptions(DEFAULT_LOCATIONS);
         }
       } catch (error) {
         console.error("Error fetching locations:", error);
+        setLocationOptions(DEFAULT_LOCATIONS);
       } finally {
         setLoadingLocations(false);
       }
@@ -187,7 +204,7 @@ export function ShopProfile() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Loading location options...</span>
               </div>
-            ) : locationOptions.length > 0 ? (
+            ) : (
               <select
                 id="location"
                 {...register('location')}
@@ -206,8 +223,6 @@ export function ShopProfile() {
                   ));
                 })()}
               </select>
-            ) : (
-              <Input id="location" {...register('location')} placeholder="Enter shop location / address" />
             )}
             {errors.location && <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>}
           </div>
