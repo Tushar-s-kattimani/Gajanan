@@ -33,13 +33,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     if (adminUser && adminUser.locations && Array.isArray(adminUser.locations)) {
       return adminUser.locations.filter(Boolean);
     }
-    const locSet = new Set<string>();
-    users.forEach(u => {
-      if (u.role === 'shop' && u.location) {
-        locSet.add(u.location.trim());
-      }
-    });
-    return Array.from(locSet).filter(Boolean).sort();
+    return [];
   }, [users]);
 
   useEffect(() => {
