@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db, storage } from '@/firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useEffect, useState } from 'react';
@@ -33,6 +33,8 @@ export function ShopProfile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -68,6 +70,30 @@ export function ShopProfile() {
       fetchUserData();
     }
   }, [user, reset]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("role", "==", "admin"));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const adminDoc = querySnapshot.docs[0];
+          const adminData = adminDoc.data();
+          if (adminData.locations && Array.isArray(adminData.locations)) {
+            setLocationOptions(adminData.locations);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+    fetchLocations();
+  }, []);
+
+  const currentLocation = watch('location');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -156,7 +182,33 @@ export function ShopProfile() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="location">Shop Location / Address</Label>
-            <Input id="location" {...register('location')} />
+            {loadingLocations ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading location options...</span>
+              </div>
+            ) : locationOptions.length > 0 ? (
+              <select
+                id="location"
+                {...register('location')}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Select a location</option>
+                {(() => {
+                  const showLocationOptions = [...locationOptions];
+                  if (currentLocation && !showLocationOptions.includes(currentLocation)) {
+                    showLocationOptions.unshift(currentLocation);
+                  }
+                  return showLocationOptions.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc}
+                    </option>
+                  ));
+                })()}
+              </select>
+            ) : (
+              <Input id="location" {...register('location')} placeholder="Enter shop location / address" />
+            )}
             {errors.location && <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>}
           </div>
         </CardContent>

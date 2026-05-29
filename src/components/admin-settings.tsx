@@ -30,6 +30,8 @@ export function AdminSettings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [newLocation, setNewLocation] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -52,6 +54,7 @@ export function AdminSettings() {
                 upiId: data.upiId || '',
                 profileName: data.profileName || '',
               });
+              setLocations(data.locations || []);
             }
         } catch (error) {
             console.error("Error fetching admin settings:", error);
@@ -64,6 +67,18 @@ export function AdminSettings() {
     }
   }, [user, reset, toast]);
 
+  const handleAddLocation = () => {
+    const val = newLocation.trim();
+    if (val && !locations.includes(val)) {
+      setLocations([...locations, val]);
+      setNewLocation('');
+    }
+  };
+
+  const handleRemoveLocation = (locToRemove: string) => {
+    setLocations(locations.filter(l => l !== locToRemove));
+  };
+
   const onSubmit = async (data: SettingsFormValues) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
@@ -75,6 +90,7 @@ export function AdminSettings() {
       await updateDoc(userDocRef, { 
         upiId: data.upiId || '',
         profileName: data.profileName,
+        locations: locations,
       });
       toast({ title: 'Success', description: 'Settings updated successfully.' });
     } catch (error: any) {
@@ -111,6 +127,49 @@ export function AdminSettings() {
             <Input id="upiId" {...register('upiId')} placeholder="your-name@oksbi" />
             {errors.upiId && <p className="text-sm text-red-500 mt-1">{errors.upiId.message}</p>}
             <p className="text-xs text-muted-foreground pt-1">Set your UPI ID here to accept online payments. Leave it blank to disable.</p>
+          </div>
+          
+          <div className="space-y-4 pt-4 border-t">
+            <div className="space-y-1">
+              <Label className="text-base font-semibold">Configure Shop Locations</Label>
+              <p className="text-xs text-muted-foreground">Add locations here. These will be available as options for shops in their profile settings.</p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Input 
+                value={newLocation} 
+                onChange={(e) => setNewLocation(e.target.value)} 
+                placeholder="Enter location name (e.g., Sector 5)" 
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddLocation();
+                  }
+                }}
+              />
+              <Button type="button" onClick={handleAddLocation}>Add</Button>
+            </div>
+
+            {locations.length > 0 ? (
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-2 border rounded-md p-3 bg-gray-50/50">
+                {locations.map((loc, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border text-sm">
+                    <span className="font-medium">{loc}</span>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-red-500 hover:text-red-700 h-8 px-2"
+                      onClick={() => handleRemoveLocation(loc)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No locations configured yet.</p>
+            )}
           </div>
         </CardContent>
         <CardFooter>
