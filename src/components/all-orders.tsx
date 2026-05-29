@@ -166,37 +166,28 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       
     doc.text(title, 14, 15);
 
-    const tableBody = filteredOrdersList.flatMap(order => {
+    const tableBody = filteredOrdersList.map(order => {
       const shopInfo = usersMap.get(order.shopId);
       const shopName = shopInfo ? shopInfo.shopName : 'N/A';
-      const location = shopInfo ? shopInfo.location : 'N/A';
-      const orderDate = order.createdAt?.toDate().toLocaleDateString('en-GB') || 'N/A';
-      const totalAmount = order.items.reduce((acc: number, item: any) => acc + (item.quantity * (item.rate || 0)), 0);
       
-      const mainRow: any[] = [
-        orderDate,
-        `${shopName} (${location})`,
-        `ID: ${order.id.substring(0, 8)}`,
-        `INR ${totalAmount.toLocaleString('en-IN')}`,
-        order.status
+      const orderDetails = order.items.map((item: any) => `${item.name} (${item.size})`).join('\n');
+      const quantities = order.items.map((item: any) => item.quantity).join('\n');
+      const totalAmount = order.items.reduce((acc: number, item: any) => acc + (item.quantity * (item.rate || 0)), 0);
+
+      return [
+        shopName,
+        orderDetails,
+        quantities,
+        `INR ${totalAmount.toLocaleString('en-IN')}`
       ];
-
-      const itemRows = order.items.map((item: any) => [
-        '',
-        `  - ${item.name} (${item.size})`,
-        `Qty: ${item.quantity} @ INR ${item.rate}`,
-        `INR ${(item.quantity * (item.rate || 0)).toLocaleString('en-IN')}`,
-        ''
-      ]);
-
-      return [mainRow, ...itemRows];
     });
 
     (doc as any).autoTable({
       startY: 20,
-      head: [['Date', 'Shop (Location)', 'Details', 'Amount', 'Status']],
+      head: [['Shop Name', 'Order', 'Quantity', 'Total Amount']],
       body: tableBody,
-      theme: 'striped',
+      theme: 'grid',
+      styles: { valign: 'middle' },
       headStyles: { fillColor: [30, 41, 59] },
     });
 
