@@ -18,8 +18,6 @@ const navItems = {
     { id: 'shops', name: 'Shops', icon: Users },
     { id: 'shop-revenue', name: 'Shop Revenue', icon: Banknote },
     { id: 'stock-report', name: 'Stock Report', icon: ClipboardList },
-    { id: 'laborers', name: 'Laborers', icon: Users },
-    { id: 'attendance', name: 'Labor Attendance', icon: Calendar },
     { id: 'settings', name: 'Settings', icon: Settings },
   ],
   shop: [
