@@ -110,9 +110,9 @@ export function ProductManagement() {
 
   useEffect(() => {
     if(initialProducts) {
-        const productsWithImages = initialProducts.map((p, index) => ({
+        const productsWithImages = initialProducts.map((p) => ({
             ...p,
-            imageUrl: p.imageUrl || placeholderImageData.products[index % placeholderImageData.products.length].src,
+            imageUrl: p.imageUrl || '/default_bottle.png',
         }));
         setProducts(productsWithImages);
         setIsOrderChanged(false);
@@ -177,7 +177,7 @@ export function ProductManagement() {
         const newProductData = {
             ...productData,
             position: products.length,
-            imageUrl: finalImageUrl || placeholderImageData.products[products.length % placeholderImageData.products.length].src,
+            imageUrl: finalImageUrl || '/default_bottle.png',
         };
         await addDoc(collection(db, 'products'), newProductData);
         toast({ title: 'Success', description: 'Product added successfully.' });

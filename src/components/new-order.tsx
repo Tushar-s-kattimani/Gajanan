@@ -28,11 +28,11 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
 
   const products = useMemo(() => {
     if (!initialProducts) return [];
-    return initialProducts.map((p, index) => {
+    return initialProducts.map((p) => {
       const cleaned = getCleanImageUrl(p.imageUrl);
       return {
         ...p,
-        imageUrl: cleaned || placeholderImageData.products[index % placeholderImageData.products.length].src,
+        imageUrl: cleaned || '/default_bottle.png',
         "data-ai-hint": "soda bottle",
       };
     });
