@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { collection, doc, getDoc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -66,32 +66,28 @@ export function ShopProfile() {
   }, [user, reset]);
 
   useEffect(() => {
+    if (!user) return;
+    // Query the admin user document — readable by all authenticated users per existing Firestore rules
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where("role", "==", "admin"));
-    
-    console.log("Listening to admin locations in real-time...");
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      let foundLocations: string[] = [];
-      if (!querySnapshot.empty) {
-        for (const doc of querySnapshot.docs) {
-          const adminData = doc.data();
-          if (adminData.locations && Array.isArray(adminData.locations) && adminData.locations.length > 0) {
-            foundLocations = adminData.locations;
-            break;
-          }
+    const adminQuery = query(usersRef, where('role', '==', 'admin'));
+    const unsubscribe = onSnapshot(adminQuery, (snapshot) => {
+      let found: string[] = [];
+      for (const d of snapshot.docs) {
+        const data = d.data();
+        if (Array.isArray(data.locations) && data.locations.length > 0) {
+          found = data.locations;
+          break;
         }
       }
-      console.log("Real-time locations loaded from admin settings:", foundLocations);
-      setLocationOptions(foundLocations);
+      setLocationOptions(found);
       setLoadingLocations(false);
     }, (error) => {
-      console.error("Error listening to locations:", error);
+      console.error('Error listening to locations:', error);
       setLocationOptions([]);
       setLoadingLocations(false);
     });
-
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) {

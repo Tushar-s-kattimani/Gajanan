@@ -20,25 +20,23 @@ export function AdminSettings() {
   const [newLocation, setNewLocation] = useState('');
 
   useEffect(() => {
-    if (user) {
-      const fetchSettings = async () => {
-        setLoading(true);
+    if (!user) return;
+    const fetchSettings = async () => {
+      setLoading(true);
+      try {
         const userDocRef = doc(db, 'users', user.uid);
-        try {
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setLocations(data.locations || []);
-          }
-        } catch (error) {
-          console.error('Error fetching admin settings:', error);
-          toast({ variant: 'destructive', title: 'Error', description: 'Could not load settings.' });
-        } finally {
-          setLoading(false);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setLocations(userDoc.data().locations || []);
         }
-      };
-      fetchSettings();
-    }
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load locations.' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
   }, [user, toast]);
 
   const handleAddLocation = () => {
