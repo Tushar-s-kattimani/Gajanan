@@ -106,7 +106,6 @@ export function ProductManagement() {
   const [products, setProducts] = useState<any[]>([]);
   const [isOrderChanged, setIsOrderChanged] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
 
   useEffect(() => {
@@ -133,7 +132,6 @@ export function ProductManagement() {
 
   const handleOpenDialog = (product: any | null = null) => {
     setEditingProduct(product);
-    setImageFile(null);
     if (product) {
       reset({ name: product.name, size: product.size, stock: product.stock, rate: product.rate, position: product.position, imageUrl: product.imageUrl });
     } else {
@@ -145,24 +143,14 @@ export function ProductManagement() {
   const handleCloseDialog = () => {
     setOpen(false);
     setEditingProduct(null);
-    setImageFile(null);
   }
-
-  const uploadFile = async (file: File, path: string): Promise<string> => {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const downloadUrl = await getDownloadURL(storageRef);
-    return downloadUrl;
-  };
 
   const onSubmit = async (data: ProductFormValues) => {
     setIsSubmitting(true);
     let finalImageUrl = editingProduct?.imageUrl || '';
     
     try {
-      if (imageFile) {
-        finalImageUrl = await uploadFile(imageFile, `products/${Date.now()}_${imageFile.name}`);
-      } else if (data.imageUrl && data.imageUrl.trim()) {
+      if (data.imageUrl && data.imageUrl.trim()) {
         const cleaned = getCleanImageUrl(data.imageUrl);
         if (cleaned.startsWith('file:///') || cleaned.match(/^[a-zA-Z]:\//)) {
           toast({
@@ -279,14 +267,12 @@ export function ProductManagement() {
               </DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div>
-                     <Label htmlFor="image">Upload Product Image</Label>
-                     <Input id="image" type="file" onChange={(e) => setImageFile(e.target.files?.[0] || null)} accept="image/*" className="mb-2" />
-                     <Label htmlFor="imageUrl">Or paste Image URL / Path</Label>
+                     <Label htmlFor="imageUrl">Product Image URL / Path</Label>
                      <Input id="imageUrl" placeholder="e.g., /pepsi.png or https://example.com/pepsi.png" {...register('imageUrl')} />
-                     {(currentImageUrl || imageFile) && (
+                     {currentImageUrl && getCleanImageUrl(currentImageUrl) && !getCleanImageUrl(currentImageUrl).startsWith('file:///') && !getCleanImageUrl(currentImageUrl).match(/^[a-zA-Z]:\//) && (
                          <div className="mt-4 relative w-24 h-24 rounded-md border bg-gray-100">
                               <img
-                                 src={imageFile ? URL.createObjectURL(imageFile) : getCleanImageUrl(currentImageUrl)}
+                                 src={getCleanImageUrl(currentImageUrl)}
                                  alt="Product Preview"
                                  className="h-full w-full object-contain rounded-md p-1"
                              />
