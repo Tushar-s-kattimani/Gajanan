@@ -2,8 +2,7 @@
 
 import { useUser } from '@/firebase';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
-import { db, storage } from '@/firebase/config';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,8 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, User as UserIcon } from 'lucide-react';
-import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 
 const profileSchema = z.object({
   profileName: z.string().min(1, 'Profile name is required'),
@@ -31,8 +29,6 @@ export function ShopProfile() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(true);
 
@@ -46,8 +42,6 @@ export function ShopProfile() {
         imageUrl: '',
     }
   });
-
-  const currentImageUrl = watch('imageUrl');
 
   useEffect(() => {
     if (user) {
@@ -99,39 +93,16 @@ export function ShopProfile() {
     return () => unsubscribe();
   }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setImageFile(file);
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      setImagePreview(null);
-    }
-  };
-
-  const uploadFile = async (file: File, path: string): Promise<string> => {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const downloadUrl = await getDownloadURL(storageRef);
-    return downloadUrl;
-  };
-  
-
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
       return;
     }
     setIsSubmitting(true);
-    let finalImageUrl = currentImageUrl || '';
     
     try {
-      if (imageFile) {
-        finalImageUrl = await uploadFile(imageFile, `user-profiles/${user.uid}/${imageFile.name}`);
-      }
-      
       const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, { ...data, imageUrl: finalImageUrl });
+      await updateDoc(userDocRef, { ...data });
       
       toast({ title: 'Success', description: 'Profile updated successfully.' });
     } catch (error: any) {
@@ -156,19 +127,6 @@ export function ShopProfile() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="image">Profile Picture</Label>
-            <div className="flex items-center gap-4">
-              <div className="relative h-20 w-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border">
-                {imagePreview || currentImageUrl ? (
-                    <Image src={imagePreview || currentImageUrl!} alt="Profile Avatar" layout="fill" objectFit="cover" />
-                ) : (
-                    <UserIcon className="h-10 w-10 text-gray-400" />
-                )}
-              </div>
-              <Input id="image" type="file" onChange={handleImageChange} accept="image/*" className="max-w-xs" />
-            </div>
-          </div>
           <div className="space-y-2">
             <Label htmlFor="shopName">Shop Name</Label>
             <Input id="shopName" {...register('shopName')} />
