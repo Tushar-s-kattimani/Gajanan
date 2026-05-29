@@ -2,23 +2,19 @@
 
 import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, LogOut, Menu, Loader2, CreditCard, Truck } from 'lucide-react';
+import { ShoppingCart, LogOut, Menu, Loader2, Truck } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
-import { collection, serverTimestamp, doc, getDocs, query, where, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, query, where, runTransaction, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useState } from 'react';
-import { UpiPaymentDialog } from './upi-payment-dialog';
 
 export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, signOut, role } = useUser();
   const { cart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [isUpiDialogOpen, setIsUpiDialogOpen] = useState(false);
-  const [adminUpiId, setAdminUpiId] = useState<string | null>(null);
-  const [isFetchingAdminUpi, setIsFetchingAdminUpi] = useState(false);
 
   const cartItems = cart;
   const cartTotal = cart.reduce((sum, item) => sum + item.quantity * item.rate, 0);
@@ -49,7 +45,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     }
   };
 
-  const placeOrder = async (paymentMethod: 'Cash on Delivery' | 'Online') => {
+  const placeOrder = async () => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to place an order.' });
       return;
@@ -73,8 +69,8 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       })),
       status: 'Pending',
       createdAt: serverTimestamp(),
-      paymentMethod: paymentMethod,
-      paymentStatus: paymentMethod === 'Online' ? 'Paid' : 'Pending',
+      paymentMethod: 'Cash on Delivery',
+      paymentStatus: 'Pending',
     };
 
     try {
@@ -114,41 +110,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     }
   };
 
-  const handlePayOnline = async () => {
-    const isProfileComplete = await checkUserProfile();
-    if (!isProfileComplete) return;
 
-    setIsFetchingAdminUpi(true);
-    try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where("role", "==", "admin"));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          throw new Error("Admin account not found.");
-        }
-
-        const adminUserDoc = querySnapshot.docs[0];
-        const adminData = adminUserDoc.data();
-        
-        if (!adminData.upiId || adminData.upiId.trim() === '') {
-            throw new Error("Admin UPI ID is not configured. Please contact support.");
-        }
-        
-        setAdminUpiId(adminData.upiId);
-        setIsUpiDialogOpen(true);
-
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Payment Error",
-            description: error.message,
-        });
-        console.error("Error fetching admin UPI:", error);
-    } finally {
-        setIsFetchingAdminUpi(false);
-    }
-  };
 
   return (
     <>
@@ -218,17 +180,13 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                       <span>Total Amount</span>
                       <span>{cartTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                     </div>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <Button className="h-12 text-base" onClick={() => placeOrder('Cash on Delivery')} disabled={isPlacingOrder}>
-                            {isPlacingOrder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
-                            Place Order (Cash)
-                        </Button>
-                        <Button className="h-12 text-base" onClick={handlePayOnline} disabled={isPlacingOrder || isFetchingAdminUpi}>
-                            {isFetchingAdminUpi ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
-                            Pay Online
-                        </Button>
+                    <div className="space-y-3">
+                      <Button className="w-full h-12 text-base" onClick={() => placeOrder()} disabled={isPlacingOrder}>
+                          {isPlacingOrder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
+                          Place Order (Cash on Delivery)
+                      </Button>
+                      <Button variant="outline" className="w-full" onClick={clearCart}>Clear Cart</Button>
                     </div>
-                    <Button variant="outline" className="w-full" onClick={clearCart}>Clear Cart</Button>
                   </div>
                 </SheetFooter>
               )}
@@ -241,15 +199,6 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         </Button>
       </div>
     </header>
-    {role === 'shop' && (
-        <UpiPaymentDialog
-            isOpen={isUpiDialogOpen}
-            setIsOpen={setIsUpiDialogOpen}
-            upiId={adminUpiId || ''}
-            amount={cartTotal}
-            onPaymentConfirm={() => placeOrder('Online')}
-        />
-    )}
     </>
   );
 }
