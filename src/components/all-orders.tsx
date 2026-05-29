@@ -166,21 +166,42 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       
     doc.text(title, 14, 15);
 
-    const tableBody = filteredOrdersList.map(order => {
+    const groupedOrders: { [key: string]: { date: string, shopName: string, items: { [key: string]: number }, totalAmount: number } } = {};
+
+    filteredOrdersList.forEach(order => {
       const shopInfo = usersMap.get(order.shopId);
       const shopName = shopInfo ? shopInfo.shopName : 'N/A';
       const orderDate = order.createdAt?.toDate().toLocaleDateString('en-GB') || 'N/A';
       
-      const orderDetails = order.items.map((item: any) => `${item.name} (${item.size})`).join('\n');
-      const quantities = order.items.map((item: any) => item.quantity).join('\n');
-      const totalAmount = order.items.reduce((acc: number, item: any) => acc + (item.quantity * (item.rate || 0)), 0);
+      const key = `${orderDate}_${order.shopId}`;
+      
+      if (!groupedOrders[key]) {
+        groupedOrders[key] = {
+          date: orderDate,
+          shopName,
+          items: {},
+          totalAmount: 0
+        };
+      }
+      
+      const group = groupedOrders[key];
+      order.items.forEach((item: any) => {
+        const itemKey = `${item.name} (${item.size})`;
+        group.items[itemKey] = (group.items[itemKey] || 0) + item.quantity;
+        group.totalAmount += item.quantity * (item.rate || 0);
+      });
+    });
 
+    const tableBody = Object.values(groupedOrders).map(group => {
+      const orderDetails = Object.keys(group.items).join('\n');
+      const quantities = Object.values(group.items).join('\n');
+      
       return [
-        orderDate,
-        shopName,
+        group.date,
+        group.shopName,
         orderDetails,
         quantities,
-        `INR ${totalAmount.toLocaleString('en-IN')}`
+        `INR ${group.totalAmount.toLocaleString('en-IN')}`
       ];
     });
 
