@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -20,28 +20,25 @@ export function AdminSettings() {
   const [newLocation, setNewLocation] = useState('');
 
   useEffect(() => {
-    if (!user) return;
-    const fetchSettings = async () => {
-      setLoading(true);
-      try {
+    if (user) {
+      const fetchSettings = async () => {
+        setLoading(true);
         const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setLocations(data.locations || []);
-          // Ensure role:'admin' is stamped so shop queries can find this doc
-          if (!data.role) {
-            await setDoc(userDocRef, { role: 'admin' }, { merge: true });
+        try {
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setLocations(data.locations || []);
           }
+        } catch (error) {
+          console.error('Error fetching admin settings:', error);
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not load settings.' });
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error fetching locations:', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load locations.' });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSettings();
+      };
+      fetchSettings();
+    }
   }, [user, toast]);
 
   const handleAddLocation = () => {
@@ -64,8 +61,7 @@ export function AdminSettings() {
     setIsSubmitting(true);
     try {
       const userDocRef = doc(db, 'users', user.uid);
-      // Always write role:'admin' to ensure the field exists for shop location queries
-      await updateDoc(userDocRef, { locations, role: 'admin' });
+      await updateDoc(userDocRef, { locations });
       toast({ title: 'Success', description: 'Locations updated successfully.' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: `Failed to update: ${error.message}` });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { doc, getDoc, getDocs, updateDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -66,50 +66,60 @@ export function ShopProfile() {
   }, [user, reset]);
 
   useEffect(() => {
-    if (!user) return;
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where("role", "==", "admin"));
 
-    let unsubscribeDoc: (() => void) | null = null;
+    console.log("Fetching admin locations...");
 
-    const setupListener = async () => {
+    // Use getDocs for an initial fetch, then onSnapshot for real-time updates
+    const fetchAndListen = async () => {
       try {
-        // Step 1: Find the admin user's UID by querying role == 'admin'
-        const usersRef = collection(db, 'users');
-        const adminQuery = query(usersRef, where('role', '==', 'admin'));
-        const snapshot = await getDocs(adminQuery);
-
-        if (snapshot.empty) {
-          setLocationOptions([]);
-          setLoadingLocations(false);
-          return;
-        }
-
-        const adminDocId = snapshot.docs[0].id;
-
-        // Step 2: Subscribe directly to that specific admin doc for real-time updates
-        const adminDocRef = doc(db, 'users', adminDocId);
-        unsubscribeDoc = onSnapshot(adminDocRef, (adminDoc) => {
-          if (adminDoc.exists()) {
-            setLocationOptions(adminDoc.data().locations || []);
-          } else {
-            setLocationOptions([]);
+        // First do a one-time fetch so it works even if onSnapshot is slow
+        const snapshot = await getDocs(q);
+        let foundLocations: string[] = [];
+        if (!snapshot.empty) {
+          for (const d of snapshot.docs) {
+            const adminData = d.data();
+            console.log("Admin doc data:", adminData);
+            if (adminData.locations && Array.isArray(adminData.locations) && adminData.locations.length > 0) {
+              foundLocations = adminData.locations;
+              break;
+            }
           }
-          setLoadingLocations(false);
-        }, (error) => {
-          console.error('Error listening to admin locations:', error);
-          setLocationOptions([]);
-          setLoadingLocations(false);
-        });
+        }
+        console.log("Initial locations loaded:", foundLocations);
+        setLocationOptions(foundLocations);
+        setLoadingLocations(false);
       } catch (error) {
-        console.error('Error setting up location listener:', error);
-        setLocationOptions([]);
+        console.error("Error fetching initial locations:", error);
         setLoadingLocations(false);
       }
     };
 
-    setupListener();
-    return () => { if (unsubscribeDoc) unsubscribeDoc(); };
-  }, [user]);
+    fetchAndListen();
 
+    // Also set up real-time listener for updates
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      let foundLocations: string[] = [];
+      if (!querySnapshot.empty) {
+        for (const d of querySnapshot.docs) {
+          const adminData = d.data();
+          if (adminData.locations && Array.isArray(adminData.locations) && adminData.locations.length > 0) {
+            foundLocations = adminData.locations;
+            break;
+          }
+        }
+      }
+      console.log("Real-time locations update:", foundLocations);
+      setLocationOptions(foundLocations);
+      setLoadingLocations(false);
+    }, (error) => {
+      console.error("Error listening to locations:", error);
+      setLoadingLocations(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user) {
