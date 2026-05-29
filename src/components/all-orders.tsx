@@ -166,7 +166,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       
     doc.text(title, 14, 15);
 
-    const groupedOrders: { [key: string]: { date: string, shopName: string, items: { [key: string]: number }, totalAmount: number } } = {};
+    const groupedOrders: { [key: string]: { date: string, shopName: string, items: { [key: string]: number } } } = {};
 
     filteredOrdersList.forEach(order => {
       const shopInfo = usersMap.get(order.shopId);
@@ -179,8 +179,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
         groupedOrders[key] = {
           date: orderDate,
           shopName,
-          items: {},
-          totalAmount: 0
+          items: {}
         };
       }
       
@@ -188,7 +187,6 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       order.items.forEach((item: any) => {
         const itemKey = `${item.name} (${item.size})`;
         group.items[itemKey] = (group.items[itemKey] || 0) + item.quantity;
-        group.totalAmount += item.quantity * (item.rate || 0);
       });
     });
 
@@ -200,14 +198,13 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
         group.date,
         group.shopName,
         orderDetails,
-        quantities,
-        `INR ${group.totalAmount.toLocaleString('en-IN')}`
+        quantities
       ];
     });
 
     (doc as any).autoTable({
       startY: 20,
-      head: [['Date', 'Shop Name', 'Order', 'Quantity', 'Total Amount']],
+      head: [['Date', 'Shop Name', 'Order', 'Quantity']],
       body: tableBody,
       theme: 'grid',
       styles: { valign: 'middle' },
