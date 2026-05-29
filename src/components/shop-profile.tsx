@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { db, storage } from '@/firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useEffect, useState } from 'react';
@@ -80,34 +80,36 @@ export function ShopProfile() {
   }, [user, reset]);
 
   useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where("role", "==", "admin"));
-        const querySnapshot = await getDocs(q);
-        let foundLocations: string[] = [];
-        if (!querySnapshot.empty) {
-          for (const doc of querySnapshot.docs) {
-            const adminData = doc.data();
-            if (adminData.locations && Array.isArray(adminData.locations) && adminData.locations.length > 0) {
-              foundLocations = adminData.locations;
-              break;
-            }
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where("role", "==", "admin"));
+    
+    console.log("Listening to admin locations in real-time...");
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      let foundLocations: string[] = [];
+      if (!querySnapshot.empty) {
+        for (const doc of querySnapshot.docs) {
+          const adminData = doc.data();
+          if (adminData.locations && Array.isArray(adminData.locations) && adminData.locations.length > 0) {
+            foundLocations = adminData.locations;
+            break;
           }
         }
-        if (foundLocations.length > 0) {
-          setLocationOptions(foundLocations);
-        } else {
-          setLocationOptions(DEFAULT_LOCATIONS);
-        }
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-        setLocationOptions(DEFAULT_LOCATIONS);
-      } finally {
-        setLoadingLocations(false);
       }
-    };
-    fetchLocations();
+      if (foundLocations.length > 0) {
+        console.log("Real-time locations loaded from admin settings:", foundLocations);
+        setLocationOptions(foundLocations);
+      } else {
+        console.log("No locations found in admin settings. Using defaults:", DEFAULT_LOCATIONS);
+        setLocationOptions(DEFAULT_LOCATIONS);
+      }
+      setLoadingLocations(false);
+    }, (error) => {
+      console.error("Error listening to locations:", error);
+      setLocationOptions(DEFAULT_LOCATIONS);
+      setLoadingLocations(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const currentLocation = watch('location');
