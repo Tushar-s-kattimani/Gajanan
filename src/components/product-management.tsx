@@ -94,7 +94,7 @@ const SortableItem = ({ product, handleOpenDialog, handleToggleAd }: { product: 
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
        <div className="relative h-12 w-12 mr-4 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
-        {product.imageUrl && getCleanImageUrl(product.imageUrl) && !getCleanImageUrl(product.imageUrl).startsWith('file:///') && !getCleanImageUrl(product.imageUrl).match(/^[a-zA-Z]:\//) ? (
+        {product.imageUrl && getCleanImageUrl(product.imageUrl) && !getCleanImageUrl(product.imageUrl).startsWith('file:///') && !getCleanImageUrl(product.imageUrl).match(/^[a-zA-Z]:[/]/) ? (
             <img src={getCleanImageUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-contain" />
         ) : (
             <ImageIcon className="h-6 w-6 text-gray-400" />
@@ -182,7 +182,7 @@ export function ProductManagement() {
     try {
       if (data.imageUrl && data.imageUrl.trim()) {
         const cleaned = getCleanImageUrl(data.imageUrl);
-        if (cleaned.startsWith('file:///') || cleaned.match(/^[a-zA-Z]:\//)) {
+        if (cleaned.startsWith('file:///') || cleaned.match(/^[a-zA-Z]:[/]/)) {
           toast({
             variant: 'destructive',
             title: 'Invalid Local Path',
@@ -314,7 +314,7 @@ export function ProductManagement() {
                   <div>
                      <Label htmlFor="imageUrl">Product Image URL / Path</Label>
                      <Input id="imageUrl" placeholder="e.g., /pepsi.png or https://example.com/pepsi.png" {...register('imageUrl')} />
-                     {currentImageUrl && getCleanImageUrl(currentImageUrl) && !getCleanImageUrl(currentImageUrl).startsWith('file:///') && !getCleanImageUrl(currentImageUrl).match(/^[a-zA-Z]:\//) && (
+                     {currentImageUrl && getCleanImageUrl(currentImageUrl) && !getCleanImageUrl(currentImageUrl).startsWith('file:///') && !getCleanImageUrl(currentImageUrl).match(/^[a-zA-Z]:[/]/) && (
                          <div className="mt-4 relative w-24 h-24 rounded-md border bg-gray-100">
                               <img
                                  src={getCleanImageUrl(currentImageUrl)}

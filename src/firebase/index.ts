@@ -30,12 +30,12 @@ export const useCollection = (pathOrQuery: string | any) => {
         }
 
         const unsubscribe = onSnapshot(memoizedQuery,
-            (snapshot) => {
-                const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            (snapshot: any) => {
+                const docs = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
                 setData(docs);
                 setLoading(false);
             },
-            (error) => {
+            (error: any) => {
                 console.error(`Error fetching collection:`, error);
                 setData([]);
                 setLoading(false);

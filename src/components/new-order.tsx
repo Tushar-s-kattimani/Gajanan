@@ -85,21 +85,23 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                    return (
                     <Card key={product.id} className={`flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 ${
                         product.isAd
-                          ? 'ad-card ring-2 ring-amber-400'
+                          ? 'ad-card'
                           : 'hover:shadow-xl'
                       }`}>
                       {product.isAd && (
-                        <div className="ad-banner flex items-center justify-center gap-2 text-white text-xs font-black py-2 px-3 tracking-widest uppercase">
-                          <span className="ad-star text-base">⭐</span>
-                          <span className="ad-badge inline-flex items-center gap-1">
-                            <Megaphone className="h-3 w-3" />
+                        <div className="ad-banner flex items-center justify-center gap-2 text-white text-xs font-black py-2.5 px-3 tracking-widest uppercase">
+                          <span className="ad-star text-lg">⭐</span>
+                          <span className="ad-badge inline-flex items-center gap-1.5 text-sm">
+                            <Megaphone className="h-4 w-4" />
                             Featured Deal
                           </span>
-                          <span className="ad-star text-base">⭐</span>
+                          <span className="ad-star text-lg">⭐</span>
                         </div>
                       )}
-                       <div className="relative h-48 w-full bg-gray-50 flex items-center justify-center border-b">
-                            {product.imageUrl && !product.imageUrl.startsWith('file:///') && !product.imageUrl.match(/^[a-zA-Z]:\//) ? (
+                       <div className={`relative h-48 w-full flex items-center justify-center border-b ${
+                         product.isAd ? 'ad-image-container' : 'bg-gray-50'
+                       }`}>
+                            {product.imageUrl && !product.imageUrl.startsWith('file:///') && !product.imageUrl.match(/^[a-zA-Z]:[/]/) ? (
                                 <img
                                     src={product.imageUrl}
                                     alt={product.name}
@@ -114,11 +116,11 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                           <h3 className="font-bold text-lg">{product.name}</h3>
                           <p className="text-sm text-muted-foreground">{product.size}</p>
                           {product.rate != null && (
-                            <p className={`text-base font-semibold mt-1 ${
-                              product.isAd ? 'text-orange-500 text-lg' : 'text-primary'
+                            <p className={`font-bold mt-1 ${
+                              product.isAd ? 'ad-price text-xl' : 'text-base text-primary'
                             }`}>
                               ₹{Number(product.rate).toLocaleString('en-IN')}
-                              {product.isAd && <span className="ml-1 text-xs font-bold text-red-500 animate-pulse">🔥 HOT</span>}
+                              {product.isAd && <span className="ml-2 text-xs font-bold text-red-500 animate-pulse">🔥 HOT DEAL</span>}
                             </p>
                           )}
                           <div className="flex-grow"></div>
@@ -128,7 +130,9 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                             </span>
                           </div>
                       </div>
-                      <CardFooter className="flex-col items-stretch space-y-2 bg-gray-50/70 p-4">
+                      <CardFooter className={`flex-col items-stretch space-y-2 p-4 ${
+                        product.isAd ? 'ad-footer' : 'bg-gray-50/70'
+                      }`}>
                         {product.stock > 0 ? (
                             <>
                               <div className="flex w-full items-center justify-between gap-2">

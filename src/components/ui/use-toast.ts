@@ -1,6 +1,11 @@
 // Inspired by react-hot-toast library
 import * as React from "react"
 
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
@@ -133,7 +138,7 @@ function toast(props: Toast) {
       ...props,
       id,
       open: true,
-      onOpenChange: (open) => {
+      onOpenChange: (open: boolean) => {
         if (!open) dismiss()
       },
     },
