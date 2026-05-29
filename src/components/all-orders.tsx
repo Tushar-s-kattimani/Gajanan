@@ -169,12 +169,14 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     const tableBody = filteredOrdersList.map(order => {
       const shopInfo = usersMap.get(order.shopId);
       const shopName = shopInfo ? shopInfo.shopName : 'N/A';
+      const orderDate = order.createdAt?.toDate().toLocaleDateString('en-GB') || 'N/A';
       
       const orderDetails = order.items.map((item: any) => `${item.name} (${item.size})`).join('\n');
       const quantities = order.items.map((item: any) => item.quantity).join('\n');
       const totalAmount = order.items.reduce((acc: number, item: any) => acc + (item.quantity * (item.rate || 0)), 0);
 
       return [
+        orderDate,
         shopName,
         orderDetails,
         quantities,
@@ -184,7 +186,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
 
     (doc as any).autoTable({
       startY: 20,
-      head: [['Shop Name', 'Order', 'Quantity', 'Total Amount']],
+      head: [['Date', 'Shop Name', 'Order', 'Quantity', 'Total Amount']],
       body: tableBody,
       theme: 'grid',
       styles: { valign: 'middle' },
