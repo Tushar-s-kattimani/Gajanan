@@ -9,11 +9,21 @@ import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[], users: any[], loading: boolean }) {
   const [selectedDate, setSelectedDate] = useState('');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [showSummary, setShowSummary] = useState(false);
+
+  const locations = useMemo(() => {
+    const adminUser = users.find(u => u.role === 'admin');
+    if (adminUser && adminUser.locations && Array.isArray(adminUser.locations)) {
+      return adminUser.locations.filter(Boolean);
+    }
+    return [];
+  }, [users]);
 
   const shopRevenueData = useMemo(() => {
     if (loading || !orders.length || !users.length) return [];
@@ -42,8 +52,12 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
       });
     }
 
+    if (locationFilter !== 'all') {
+      deliveredOrders = deliveredOrders.filter(order => order.shopInfo?.location === locationFilter);
+    }
+
     return deliveredOrders.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-  }, [orders, users, loading, selectedDate]);
+  }, [orders, users, loading, selectedDate, locationFilter]);
 
   const totalItemsForDate = useMemo(() => {
     return shopRevenueData.reduce((sum, order) => sum + order.items.reduce((itemSum: any, item: any) => itemSum + item.quantity, 0), 0);
@@ -116,6 +130,19 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
           <CardTitle className='text-xl md:text-2xl font-bold tracking-tight'>Shop Revenue</CardTitle>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <Select onValueChange={(value) => setLocationFilter(value)} value={locationFilter}>
+            <SelectTrigger className="w-full sm:w-[180px] h-10 bg-white">
+              <SelectValue placeholder="All Locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations.map((loc: string) => (
+                <SelectItem key={loc} value={loc}>
+                  {loc}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Input
             type="date"
             value={selectedDate}

@@ -7,9 +7,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, User, Download, Printer, Calendar, Clock, Info, Filter, Phone, CreditCard } from 'lucide-react';
+import { Loader2, User, Download, Calendar, Clock, Info, Filter, Phone, CreditCard } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const statusColors: { [key: string]: string } = {
   Pending: 'bg-yellow-100 text-yellow-800',
@@ -33,7 +35,13 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     if (adminUser && adminUser.locations && Array.isArray(adminUser.locations)) {
       return adminUser.locations.filter(Boolean);
     }
-    return [];
+    const locSet = new Set<string>();
+    users.forEach(u => {
+      if (u.role === 'shop' && u.location) {
+        locSet.add(u.location.trim());
+      }
+    });
+    return Array.from(locSet).filter(Boolean).sort();
   }, [users]);
 
   useEffect(() => {
@@ -151,9 +159,50 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     document.body.removeChild(link);
   };
   
-  const handlePrint = () => {
-    window.print();
-  }
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF();
+    
+    const title = `Customer Orders Report${locationFilter !== 'all' ? ` - ${locationFilter}` : ''}${statusFilter !== 'all' ? ` (${statusFilter})` : ''}`;
+      
+    doc.text(title, 14, 15);
+
+    const tableBody = filteredOrdersList.flatMap(order => {
+      const shopInfo = usersMap.get(order.shopId);
+      const shopName = shopInfo ? shopInfo.shopName : 'N/A';
+      const location = shopInfo ? shopInfo.location : 'N/A';
+      const orderDate = order.createdAt?.toDate().toLocaleDateString('en-GB') || 'N/A';
+      const totalAmount = order.items.reduce((acc: number, item: any) => acc + (item.quantity * (item.rate || 0)), 0);
+      
+      const mainRow: any[] = [
+        orderDate,
+        `${shopName} (${location})`,
+        `ID: ${order.id.substring(0, 8)}`,
+        `INR ${totalAmount.toLocaleString('en-IN')}`,
+        order.status
+      ];
+
+      const itemRows = order.items.map((item: any) => [
+        '',
+        `  - ${item.name} (${item.size})`,
+        `Qty: ${item.quantity} @ INR ${item.rate}`,
+        `INR ${(item.quantity * (item.rate || 0)).toLocaleString('en-IN')}`,
+        ''
+      ]);
+
+      return [mainRow, ...itemRows];
+    });
+
+    (doc as any).autoTable({
+      startY: 20,
+      head: [['Date', 'Shop (Location)', 'Details', 'Amount', 'Status']],
+      body: tableBody,
+      theme: 'striped',
+      headStyles: { fillColor: [30, 41, 59] },
+    });
+
+    const fileDate = new Date().toLocaleDateString('en-CA');
+    doc.save(`orders_report_${fileDate}.pdf`);
+  };
 
 
   return (
@@ -193,9 +242,9 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
               <Download className="mr-2 h-4 w-4" />
               Report
             </Button>
-            <Button onClick={handlePrint} variant="outline" size="sm">
-                <Printer className="mr-2 h-4 w-4" />
-                Print
+            <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={filteredOrdersList.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                PDF
             </Button>
         </div>
       </CardHeader>
