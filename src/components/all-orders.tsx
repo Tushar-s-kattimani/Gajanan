@@ -152,7 +152,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
         date: string; 
         shopName: string; 
         phoneNumber: string;
-        items: { [key: string]: { name: string; size: string; quantity: number } } 
+        items: { [key: string]: { name: string; size: string; quantity: number, amount: number } } 
       } 
     } = {};
 
@@ -180,10 +180,12 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
           group.items[itemKey] = {
             name: item.name,
             size: item.size,
-            quantity: 0
+            quantity: 0,
+            amount: 0
           };
         }
         group.items[itemKey].quantity += item.quantity;
+        group.items[itemKey].amount += (item.quantity * (item.rate || 0));
       });
     });
 
@@ -192,6 +194,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       const orderNames = itemsArray.map(item => item.name).join('\n');
       const orderSizes = itemsArray.map(item => item.size).join('\n');
       const quantities = itemsArray.map(item => item.quantity).join('\n');
+      const amounts = itemsArray.map(item => `Rs. ${item.amount.toLocaleString('en-IN')}`).join('\n');
       
       return [
         group.date,
@@ -199,13 +202,14 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
         group.phoneNumber,
         orderNames,
         orderSizes,
-        quantities
+        quantities,
+        amounts
       ];
     });
 
     (doc as any).autoTable({
       startY: 20,
-      head: [['Date', 'Shop Name', 'Phone', 'Order', 'Size', 'Quantity']],
+      head: [['Date', 'Shop Name', 'Phone', 'Order', 'Size', 'Quantity', 'Amount']],
       body: tableBody,
       theme: 'grid',
       styles: { valign: 'middle' },
