@@ -111,6 +111,11 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                             ) : (
                                 <ImageIcon className="h-16 w-16 text-gray-300" />
                             )}
+                            {product.isAd && (
+                              <div className="absolute bottom-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-black tracking-widest shadow-lg animate-pulse border-2 border-white">
+                                🛒 BUY NOW!
+                              </div>
+                            )}
                       </div>
                       <div className="p-4 flex flex-col flex-grow">
                           <h3 className="font-bold text-lg">{product.name}</h3>
@@ -150,8 +155,12 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                                   <Plus className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <Button size="sm" onClick={() => handleAddToCart(product)} className="w-full h-9">
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add to Cart
+                              <Button size="sm" onClick={() => handleAddToCart(product)} className={`w-full h-9 ${product.isAd ? 'bg-amber-500 hover:bg-amber-600 text-white font-bold' : ''}`}>
+                                {product.isAd ? (
+                                  <>🛒 Buy Now!</>
+                                ) : (
+                                  <><PlusCircle className="mr-2 h-4 w-4" /> Add to Cart</>
+                                )}
                               </Button>
                             </>
                           ) : (
