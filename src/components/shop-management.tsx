@@ -31,7 +31,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
     .map(user => user.phoneNumber)
     .join(',');
 
-  const smsMessage = "Hi from GAJANAN ENTERPRISES (PEPSI DISTRIBUTOR), GHATAPRABHA! 🥤 If you have any new orders, please send the orders in the app only! 📱📦🚚";
+  const smsMessage = "Hi from Gajanan Enterprises (Pepsi Distributor), GHATAPRABHA! 🥤 If you have any new orders, please send the orders in the app only! 📱📦🚚";
 
   return (
     <Card>
