@@ -156,11 +156,7 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                                 </Button>
                               </div>
                               <Button size="sm" onClick={() => handleAddToCart(product)} className={`w-full h-9 ${product.isAd ? 'bg-amber-500 hover:bg-amber-600 text-white font-bold' : ''}`}>
-                                {product.isAd ? (
-                                  <>🛒 Buy Now!</>
-                                ) : (
-                                  <><PlusCircle className="mr-2 h-4 w-4" /> Add to Cart</>
-                                )}
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add to Cart
                               </Button>
                             </>
                           ) : (
