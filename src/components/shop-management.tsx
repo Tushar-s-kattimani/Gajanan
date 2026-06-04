@@ -35,7 +35,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
     .join(',');
 
   const smsMessage = "Hi from Gajanan Enterprises (Pepsi Distributor), GHATAPRABHA! 🥤 If you have any new orders, please send the orders in the app only! 📱📦🚚";
-  const offerSmsMessage = `🌟 Special Offer from GAJANAN ENTERPRISES! 🌟\n\n${offerText}\n\nPlace your order directly in the app! 📱📦🚚`;
+  const offerSmsMessage = `🌟 Special Offer from GAJANAN ENTERPRISES, GHATAPRABHA! 🌟\n\n${offerText}\n\nPlace your order directly in the app! 📱📦🚚`;
 
   return (
     <Card>
