@@ -1,17 +1,63 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, User as UserIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Loader2, User as UserIcon, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 
 export function ShopManagement({ users = [], loading }: { users: any[], loading: boolean }) {
-  const shopUsers = users.filter(user => user.role === 'shop');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
+
+  const uniqueLocations = useMemo(() => {
+    const locations = users
+      .filter((user) => user.role === 'shop' && user.location)
+      .map((user) => user.location);
+    return Array.from(new Set(locations)) as string[];
+  }, [users]);
+
+  const shopUsers = users.filter(user => {
+    if (user.role !== 'shop') return false;
+    if (locationFilter && locationFilter !== 'all') {
+      return user.location?.toLowerCase() === locationFilter.toLowerCase();
+    }
+    return true;
+  });
+
+  const allPhoneNumbers = shopUsers
+    .filter(user => user.phoneNumber)
+    .map(user => user.phoneNumber)
+    .join(',');
+
+  const smsMessage = "Hi from Gajanan Enterprises (Pepsi Distributor), Ghataprabha! 🥤 If you have any new orders, please place them now! 📦🚚";
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle>Shop Management</CardTitle>
+        <div className="flex items-center space-x-4">
+          {allPhoneNumbers && (
+            <a href={`sms:${allPhoneNumbers}?body=${encodeURIComponent(smsMessage)}`}>
+              <Button variant="default" size="sm" title="Send SMS to All Filtered Shops">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                SMS All
+              </Button>
+            </a>
+          )}
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {uniqueLocations.map((loc) => (
+                <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         {loading ? (
@@ -25,7 +71,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                 <TableHead>Contact Person</TableHead>
                 <TableHead>Shop Email</TableHead>
                 <TableHead>Phone Number</TableHead>
-                <TableHead>Date Joined</TableHead>
+                <TableHead>Location</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -44,7 +90,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                   <TableCell>{user.profileName || 'N/A'}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.phoneNumber || 'N/A'}</TableCell>
-                  <TableCell>{user.createdAt ? new Date(user.createdAt.toMillis()).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{user.location || 'N/A'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
