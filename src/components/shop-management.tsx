@@ -31,13 +31,13 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
     .map(user => user.phoneNumber)
     .join(',');
 
-  const smsMessage = "Hi from Gajanan Enterprises (Pepsi Distributor), Ghataprabha! 🥤 If you have any new orders, please place them now! 📦🚚";
+  const smsMessage = "Hi from GAJANAN ENTERPRISES (PEPSI DISTRIBUTOR), GHATAPRABHA! 🥤 If you have any new orders, please send the orders in the app only! 📱📦🚚";
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 space-y-0 pb-4">
         <CardTitle>Shop Management</CardTitle>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           {allPhoneNumbers && (
             <a href={`sms:${allPhoneNumbers}?body=${encodeURIComponent(smsMessage)}`}>
               <Button variant="default" size="sm" title="Send SMS to All Filtered Shops">
@@ -47,7 +47,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
             </a>
           )}
           <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by location" />
             </SelectTrigger>
             <SelectContent>
