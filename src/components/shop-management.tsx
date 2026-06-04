@@ -4,12 +4,15 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, User as UserIcon, MessageSquare } from 'lucide-react';
+import { Loader2, User as UserIcon, MessageSquare, Tag } from 'lucide-react';
 import Image from 'next/image';
 
 export function ShopManagement({ users = [], loading }: { users: any[], loading: boolean }) {
   const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [offerText, setOfferText] = useState('');
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
 
   const uniqueLocations = useMemo(() => {
     const locations = users
@@ -32,6 +35,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
     .join(',');
 
   const smsMessage = "Hi from Gajanan Enterprises (Pepsi Distributor), GHATAPRABHA! 🥤 If you have any new orders, please send the orders in the app only! 📱📦🚚";
+  const offerSmsMessage = `🌟 Special Offer from GAJANAN ENTERPRISES! 🌟\n\n${offerText}\n\nPlace your order directly in the app! 📱📦🚚`;
 
   return (
     <Card>
@@ -39,12 +43,42 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
         <CardTitle>Shop Management</CardTitle>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           {allPhoneNumbers && (
-            <a href={`sms:${allPhoneNumbers}?body=${encodeURIComponent(smsMessage)}`}>
-              <Button variant="default" size="sm" title="Send SMS to All Filtered Shops">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                SMS All
-              </Button>
-            </a>
+            <>
+              <a href={`sms:${allPhoneNumbers}?body=${encodeURIComponent(smsMessage)}`}>
+                <Button variant="default" size="sm" title="Send SMS to All Filtered Shops">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  SMS All
+                </Button>
+              </a>
+              
+              <Dialog open={isOfferDialogOpen} onOpenChange={setIsOfferDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" size="sm" title="Send Offer SMS">
+                    <Tag className="h-4 w-4 mr-2" />
+                    Offer SMS
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Send Custom Offer</DialogTitle>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <textarea 
+                      className="w-full min-h-[100px] p-3 rounded-md border border-input bg-background"
+                      placeholder="Type your custom offer details here (e.g., Buy 10 cases get 1 free!)"
+                      value={offerText}
+                      onChange={(e) => setOfferText(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsOfferDialogOpen(false)}>Cancel</Button>
+                    <a href={`sms:${allPhoneNumbers}?body=${encodeURIComponent(offerSmsMessage)}`} onClick={() => setIsOfferDialogOpen(false)}>
+                      <Button disabled={!offerText.trim()}>Send Offer</Button>
+                    </a>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
           <Select value={locationFilter} onValueChange={setLocationFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
