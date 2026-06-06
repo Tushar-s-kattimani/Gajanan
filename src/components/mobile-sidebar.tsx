@@ -53,11 +53,11 @@ export function MobileSidebar({ role, activeSection, setActiveSection, isOpen, s
                 <PepsiBottleLogo />
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-base font-bold text-gray-800 text-shadow-md leading-tight">
+                  <h1 className="text-xl font-bold text-gray-800 text-shadow-md leading-tight">
                     Gajanan Enterprises
                   </h1>
                   {role === 'shop' && (
-                    <span className="text-lg font-black text-indigo-700 tracking-widest drop-shadow-sm uppercase mt-0.5">
+                    <span className="text-xl font-bold text-gray-800 text-shadow-md leading-tight mt-0.5">
                       Ghataprabha
                     </span>
                   )}

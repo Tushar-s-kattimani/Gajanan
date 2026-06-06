@@ -132,11 +132,11 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         </Button>
          <div className="overflow-hidden">
              <div className="flex flex-col md:flex-row md:items-baseline md:gap-2">
-               <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 text-shadow-md leading-tight truncate">
+               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 text-shadow-md leading-tight truncate">
                   {role === 'admin' ? 'Admin Console' : 'Gajanan Enterprises'}
                </h1>
                {role === 'shop' && (
-                  <span className="text-sm sm:text-lg md:text-xl lg:text-2xl font-black text-indigo-800 tracking-widest drop-shadow-sm uppercase mt-0.5 md:mt-0">
+                  <span className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 text-shadow-md leading-tight mt-0.5 md:mt-0">
                     Ghataprabha
                   </span>
                )}
