@@ -131,8 +131,8 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           <span className="sr-only">Toggle navigation menu</span>
         </Button>
          <div className="overflow-hidden">
-             <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 text-shadow-md truncate">
-                {role === 'admin' ? 'Admin Console' : 'Gajanan Enterprise Shop Portal'}
+             <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 text-shadow-md leading-tight sm:truncate whitespace-normal">
+                {role === 'admin' ? 'Admin Console' : 'Gajanan Enterprise Ghataprabha'}
             </h1>
             <p className="text-sm text-gray-500 mt-1 truncate hidden sm:block">
                 Welcome, <span className="font-semibold">{user?.email}</span>

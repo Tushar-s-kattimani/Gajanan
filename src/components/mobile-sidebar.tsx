@@ -52,7 +52,7 @@ export function MobileSidebar({ role, activeSection, setActiveSection, isOpen, s
                 <div className="h-10 w-10 flex-shrink-0">
                 <PepsiBottleLogo />
                 </div>
-                <h1 className="text-xl font-bold text-gray-800 text-shadow-md">{role === 'admin' ? 'Gajanan Enterprises' : 'Gajanan Enterprise shop portal'}</h1>
+                <h1 className="text-lg font-bold text-gray-800 text-shadow-md leading-tight">{role === 'admin' ? 'Gajanan Enterprises' : 'Gajanan Enterprise Ghataprabha'}</h1>
             </div>
           </SheetHeader>
           <nav className="flex-1 space-y-2 p-4">
