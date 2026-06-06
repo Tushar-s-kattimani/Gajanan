@@ -46,15 +46,20 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   };
 
   const placeOrder = async () => {
+    if (isPlacingOrder) return;
+    setIsPlacingOrder(true);
+
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to place an order.' });
+      setIsPlacingOrder(false);
       return;
     }
 
     const isProfileComplete = await checkUserProfile();
-    if (!isProfileComplete) return;
-    
-    setIsPlacingOrder(true);
+    if (!isProfileComplete) {
+      setIsPlacingOrder(false);
+      return;
+    }
     
     const newOrderRef = doc(collection(db, 'orders'));
     const orderPayload = {
@@ -139,10 +144,10 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         {role === 'shop' && (
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="relative flex-shrink-0">
-                <ShoppingCart className="h-5 w-5" />
+              <Button variant="outline" className="relative flex-shrink-0 h-12 w-12">
+                <ShoppingCart className="h-6 w-6" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs text-white">
+                  <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-md">
                     {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 )}
@@ -193,10 +198,6 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
             </SheetContent>
           </Sheet>
         )}
-        <Button onClick={signOut} variant="outline" className="h-10 w-10 p-0 flex-shrink-0">
-          <LogOut className="h-5 w-5" />
-          <span className="sr-only">Sign out</span>
-        </Button>
       </div>
     </header>
     </>

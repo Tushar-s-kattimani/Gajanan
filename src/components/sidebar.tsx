@@ -1,8 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { BarChart, Package, Users, ShoppingCart, History, Home, User, Banknote, Calendar, ClipboardList, Settings } from 'lucide-react';
+import { BarChart, Package, Users, ShoppingCart, History, Home, User, Banknote, Calendar, ClipboardList, Settings, LogOut } from 'lucide-react';
 import { PepsiBottleLogo } from './pepsi-logo';
+import { useUser } from '@/firebase';
 
 interface SidebarProps {
   role: 'admin' | 'shop';
@@ -30,6 +31,7 @@ const navItems = {
 
 export function Sidebar({ role, activeSection, setActiveSection }: SidebarProps) {
   const items = navItems[role];
+  const { signOut } = useUser();
 
   return (
     <aside className="hidden w-64 flex-col border-r bg-white p-4 shadow-xl md:flex">
@@ -60,6 +62,12 @@ export function Sidebar({ role, activeSection, setActiveSection }: SidebarProps)
           )
         })}
       </nav>
+      <div className="pt-4 border-t mt-auto">
+        <Button onClick={signOut} variant="outline" className="w-full justify-start items-center gap-3 text-base h-12 px-4 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50">
+          <LogOut className="h-5 w-5" />
+          Logout
+        </Button>
+      </div>
     </aside>
   );
 }

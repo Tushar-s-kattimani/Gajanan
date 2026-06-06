@@ -2,9 +2,10 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { BarChart, Package, Users, ShoppingCart, History, Home, User, Banknote, Calendar, ClipboardList, Settings } from 'lucide-react';
+import { BarChart, Package, Users, ShoppingCart, History, Home, User, Banknote, Calendar, ClipboardList, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PepsiBottleLogo } from './pepsi-logo';
+import { useUser } from '@/firebase';
 
 
 interface MobileSidebarProps {
@@ -34,6 +35,7 @@ const navItems = {
 
 export function MobileSidebar({ role, activeSection, setActiveSection, isOpen, setIsOpen }: MobileSidebarProps) {
   const items = navItems[role];
+  const { signOut } = useUser();
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -74,6 +76,12 @@ export function MobileSidebar({ role, activeSection, setActiveSection, isOpen, s
               );
             })}
           </nav>
+          <div className="p-4 border-t mt-auto">
+            <Button onClick={() => { setIsOpen(false); signOut(); }} variant="outline" className="w-full justify-start items-center gap-3 text-base h-12 px-4 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50">
+              <LogOut className="h-5 w-5" />
+              Logout
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
