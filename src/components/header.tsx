@@ -95,6 +95,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
       });
 
       toast({ title: 'Success', description: 'Order placed successfully!' });
+      clearCart();
       
     } catch (error: any) {
         toast({
