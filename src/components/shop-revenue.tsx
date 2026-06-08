@@ -75,7 +75,7 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
   }, [shopRevenueData]);
 
   const handleDownloadPdf = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF('landscape');
     
     const title = selectedDate 
       ? `Shop Revenue for ${new Date(selectedDate+'T00:00:00').toLocaleDateString('en-GB')}`

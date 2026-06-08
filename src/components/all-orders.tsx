@@ -141,7 +141,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
 
   
   const handleDownloadPdf = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF('landscape');
     
     const title = `Customer Orders Report${locationFilter !== 'all' ? ` - ${locationFilter}` : ''}${statusFilter !== 'all' ? ` (${statusFilter})` : ''}`;
       
