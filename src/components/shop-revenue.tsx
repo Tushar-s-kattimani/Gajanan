@@ -22,7 +22,13 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
     if (adminUser && adminUser.locations && Array.isArray(adminUser.locations)) {
       return adminUser.locations.filter(Boolean);
     }
-    return [];
+    const locSet = new Set<string>();
+    users.forEach(u => {
+      if (u.role === 'shop' && u.location) {
+        locSet.add(u.location.trim());
+      }
+    });
+    return Array.from(locSet).filter(Boolean).sort();
   }, [users]);
 
   const shopRevenueData = useMemo(() => {
@@ -78,62 +84,17 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
     const doc = new jsPDF('landscape');
     
     const title = selectedDate 
-      ? `Shop Revenue for ${new Date(selectedDate+'T00:00:00').toLocaleDateString('en-GB')}`
-      : 'Shop Revenue from All Delivered Orders';
+      ? `Shop Revenue Summary for ${new Date(selectedDate+'T00:00:00').toLocaleDateString('en-GB')}`
+      : 'Shop Revenue Summary (All Delivered Orders)';
       
     doc.text(title, 14, 15);
 
-    const tableBody = shopRevenueData.flatMap(order => {
-      const date = order.createdAt.toDate().toLocaleString('en-GB');
-      const shopName = order.shopInfo.shopName || 'N/A';
-      const location = order.shopInfo.location || 'N/A';
-      
-      const rows = order.items.map((item: any, index: number) => [
-        index === 0 ? date : '',
-        index === 0 ? shopName : '',
-        index === 0 ? location : '',
-        item.name,
-        item.size,
-        item.quantity,
-        (item.rate || 0).toLocaleString('en-IN'),
-        (item.quantity * (item.rate || 0)).toLocaleString('en-IN')
-      ]);
-      
-      // Order Subtotal row
-      const orderTotalQty = order.items.reduce((sum: any, item: any) => sum + item.quantity, 0);
-      const orderTotalAmount = order.items.reduce((sum: any, item: any) => sum + (item.quantity * (item.rate || 0)), 0);
-      
-      rows.push([
-        '', '', '', 'Order Total', '', 
-        orderTotalQty.toString(), 
-        '', 
-        orderTotalAmount.toLocaleString('en-IN')
-      ]);
-      
-      return rows;
-    });
+    let currentY = 25;
 
-
+    // Add Product Summary table
+    doc.text("Product Summary", 14, currentY);
     (doc as any).autoTable({
-      startY: 20,
-      head: [['Date & Time', 'Shop Name', 'Location', 'Product', 'Size', 'Qty', 'Rate (Rs)', 'Amount (Rs)']],
-      body: tableBody,
-      theme: 'grid',
-      styles: { fontSize: 8, valign: 'middle' },
-      didParseCell: function(data: any) {
-        if (data.row.raw[3] === 'Order Total') {
-          data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.fillColor = [245, 245, 245];
-        }
-      }
-    });
-    
-    const finalY = (doc as any).lastAutoTable.finalY;
-
-    // Add summary table
-    doc.text("Product Summary", 14, finalY + 10);
-    (doc as any).autoTable({
-      startY: finalY + 12,
+      startY: currentY + 4,
       head: [['Product', 'Total Quantity']],
       body: productSummary,
       foot: [['Overall Total Items', totalItemsForDate.toLocaleString()]],
@@ -167,8 +128,7 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
       footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
     });
 
-
-    doc.save('shop_revenue_report.pdf');
+    doc.save('shop_revenue_summary.pdf');
   }
 
   return (
