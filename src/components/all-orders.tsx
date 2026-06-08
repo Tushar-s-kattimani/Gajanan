@@ -33,11 +33,11 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
   const [dateFilter, setDateFilter] = useState<string>('');
 
   const locations = useMemo(() => {
+    const locSet = new Set<string>();
     const adminUser = users.find(u => u.role === 'admin');
     if (adminUser && adminUser.locations && Array.isArray(adminUser.locations)) {
-      return adminUser.locations.filter(Boolean);
+      adminUser.locations.forEach((loc: string) => loc && locSet.add(loc.trim()));
     }
-    const locSet = new Set<string>();
     users.forEach(u => {
       if (u.role === 'shop' && u.location) {
         locSet.add(u.location.trim());
