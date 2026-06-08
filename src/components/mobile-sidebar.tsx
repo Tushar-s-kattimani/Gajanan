@@ -49,7 +49,7 @@ export function MobileSidebar({ role, activeSection, setActiveSection, isOpen, s
           <SheetHeader className='p-4'>
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <div className="flex items-center gap-4 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-200 p-4 shadow-md">
-                <div className="h-10 w-10 flex-shrink-0">
+                <div className="h-14 w-14 flex-shrink-0">
                 <PepsiBottleLogo />
                 </div>
                 <div className="flex flex-col">

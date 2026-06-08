@@ -36,7 +36,7 @@ export function Sidebar({ role, activeSection, setActiveSection }: SidebarProps)
   return (
     <aside className="hidden w-64 flex-col border-r bg-white p-4 shadow-xl md:flex">
       <div className="mb-8 flex items-center gap-4 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-200 p-4 shadow-md">
-        <div className="h-10 w-10 flex-shrink-0">
+        <div className="h-14 w-14 flex-shrink-0">
           <PepsiBottleLogo />
         </div>
         <div className="flex flex-col">

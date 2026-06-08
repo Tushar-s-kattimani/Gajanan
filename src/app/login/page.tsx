@@ -142,8 +142,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2 pt-6 sm:pt-8">
-            <div className="mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
-                <Package className="h-8 w-8 sm:h-10 sm:w-10" />
+            <div className="mx-auto flex items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-full overflow-hidden border shadow-sm">
+                <img src="/pepsi.webp" alt="Pepsi Logo" className="h-full w-full object-cover" />
             </div>
           <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight">PepsiConnect</CardTitle>
           <CardDescription className="text-sm sm:text-base text-muted-foreground">

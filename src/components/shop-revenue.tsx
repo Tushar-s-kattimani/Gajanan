@@ -84,26 +84,48 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
     doc.text(title, 14, 15);
 
     const tableBody = shopRevenueData.flatMap(order => {
-      const mainRow: any[] = [
-        order.createdAt.toDate().toLocaleString('en-GB'),
-        order.shopInfo.shopName || 'N/A',
-        order.shopInfo.location || 'N/A',
-        order.items.reduce((itemSum: any, item: any) => itemSum + item.quantity, 0)
-      ];
-      const itemRows = order.items.map((item: any) => [
-          '',
-          `  - ${item.name} (${item.size})`,
-          `Qty: ${item.quantity}`,
-          ''
+      const date = order.createdAt.toDate().toLocaleString('en-GB');
+      const shopName = order.shopInfo.shopName || 'N/A';
+      const location = order.shopInfo.location || 'N/A';
+      
+      const rows = order.items.map((item: any, index: number) => [
+        index === 0 ? date : '',
+        index === 0 ? shopName : '',
+        index === 0 ? location : '',
+        item.name,
+        item.size,
+        item.quantity,
+        (item.rate || 0).toLocaleString('en-IN'),
+        (item.quantity * (item.rate || 0)).toLocaleString('en-IN')
       ]);
-      return [mainRow, ...itemRows];
+      
+      // Order Subtotal row
+      const orderTotalQty = order.items.reduce((sum: any, item: any) => sum + item.quantity, 0);
+      const orderTotalAmount = order.items.reduce((sum: any, item: any) => sum + (item.quantity * (item.rate || 0)), 0);
+      
+      rows.push([
+        '', '', '', 'Order Total', '', 
+        orderTotalQty.toString(), 
+        '', 
+        orderTotalAmount.toLocaleString('en-IN')
+      ]);
+      
+      return rows;
     });
 
 
     (doc as any).autoTable({
       startY: 20,
-      head: [['Date & Time', 'Shop Name', 'Location / Item Details', 'Total Items']],
+      head: [['Date & Time', 'Shop Name', 'Location', 'Product', 'Size', 'Qty', 'Rate (Rs)', 'Amount (Rs)']],
       body: tableBody,
+      theme: 'grid',
+      styles: { fontSize: 8, valign: 'middle' },
+      didParseCell: function(data: any) {
+        if (data.row.raw[3] === 'Order Total') {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [245, 245, 245];
+        }
+      }
     });
     
     const finalY = (doc as any).lastAutoTable.finalY;
@@ -114,7 +136,34 @@ export function ShopRevenue({ orders = [], users = [], loading }: { orders: any[
       startY: finalY + 12,
       head: [['Product', 'Total Quantity']],
       body: productSummary,
-      foot: [['', ''], ['Overall Total Items', totalItemsForDate.toLocaleString()]],
+      foot: [['Overall Total Items', totalItemsForDate.toLocaleString()]],
+      footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
+    });
+
+    const finalY2 = (doc as any).lastAutoTable.finalY;
+
+    const shopSummaryMap = new Map();
+    let overallTotalAmount = 0;
+    
+    shopRevenueData.forEach(order => {
+      const shopName = order.shopInfo.shopName || 'N/A';
+      const orderAmount = order.items.reduce((sum: any, item: any) => sum + (item.quantity * (item.rate || 0)), 0);
+      overallTotalAmount += orderAmount;
+      
+      shopSummaryMap.set(shopName, (shopSummaryMap.get(shopName) || 0) + orderAmount);
+    });
+
+    const shopSummaryBody = Array.from(shopSummaryMap.entries()).map(([shopName, amount]) => [
+        shopName,
+        `Rs. ${amount.toLocaleString('en-IN')}`
+    ]);
+
+    doc.text("Shop Revenue Summary", 14, finalY2 + 10);
+    (doc as any).autoTable({
+      startY: finalY2 + 12,
+      head: [['Shop Name', 'Total Amount']],
+      body: shopSummaryBody,
+      foot: [['Overall Total Amount', `Rs. ${overallTotalAmount.toLocaleString('en-IN')}`]],
       footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
     });
 
