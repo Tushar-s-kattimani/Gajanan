@@ -77,7 +77,7 @@ export function AdminSettings() {
     try {
       const { collection, getDocs, deleteDoc } = await import('firebase/firestore');
       const ordersSnapshot = await getDocs(collection(db, 'orders'));
-      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
       const duplicatesToDelete: string[] = [];
       const ordersByShop: Record<string, any[]> = {};
