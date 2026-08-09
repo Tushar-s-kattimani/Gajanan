@@ -58,5 +58,13 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+
+    // Rules for 'visitors' collection (analytics)
+    match /visitors/{visitorId} {
+      // Anyone can create a visitor log (anonymous or logged in)
+      allow create: if true;
+      // Only admins can read the analytics logs
+      allow read, update, delete: if isAdmin();
+    }
   }
 }

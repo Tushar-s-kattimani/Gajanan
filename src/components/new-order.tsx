@@ -13,16 +13,21 @@ import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
 
 
-function getCleanImageUrl(url?: string): string {
+function getCleanImageUrl(url: string | undefined): string {
   if (!url) return '';
-  let clean = url.trim().replace(/^"|"$/g, '').replace(/\\/g, '/');
+  let clean = url.trim();
   
   if (clean.startsWith('public/')) {
-    clean = clean.substring(6); // remove "public" so it starts with "/"
+    clean = clean.replace('public/', '/');
+  }
+  
+  const pathMatch = clean.match(/^[a-zA-Z]:\\.*public\\(.*)$/);
+  if (pathMatch) {
+    clean = '/' + pathMatch[1].replace(/\\/g, '/');
   } else {
-    const publicIndex = clean.toLowerCase().indexOf('/public/');
-    if (publicIndex !== -1) {
-      clean = clean.substring(publicIndex + 7);
+    const forwardSlashMatch = clean.match(/^[a-zA-Z]:\/.*public\/(.*)$/);
+    if (forwardSlashMatch) {
+      clean = '/' + forwardSlashMatch[1];
     }
   }
   
@@ -32,6 +37,11 @@ function getCleanImageUrl(url?: string): string {
   
   return clean;
 }
+
+const calculateDiscount = (mrp: number, rate: number) => {
+  if (!mrp || mrp <= rate) return 0;
+  return Math.round(((mrp - rate) / mrp) * 100);
+};
 
 export function NewOrder({ products: initialProducts = [], loading }: { products: any[], loading: boolean }) {
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
@@ -140,7 +150,15 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                                 {adProduct.size}
                               </span>
                             </div>
-                            <p className="text-xl sm:text-3xl font-black text-[#2874f0]">₹{adProduct.rate}</p>
+                            <div className="flex items-center gap-2 mb-4">
+                              <span className="text-xl sm:text-3xl font-black text-[#2874f0]">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
+                              {adProduct.mrp > adProduct.rate && (
+                                <>
+                                  <span className="text-sm sm:text-base text-gray-500 line-through">₹{Number(adProduct.mrp).toLocaleString('en-IN')}</span>
+                                  <span className="text-sm sm:text-base font-bold text-[#388e3c]">{calculateDiscount(adProduct.mrp, adProduct.rate)}% off</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                           {adProduct.imageUrl && (
                             <div className="w-24 h-24 sm:w-40 sm:h-40 flex-shrink-0 ml-4 bg-white rounded-full p-1 sm:p-2 border border-blue-200 shadow-sm overflow-visible">
@@ -252,12 +270,16 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                               <span className="font-bold text-base sm:text-lg text-gray-900">
                                 ₹{Number(product.rate).toLocaleString('en-IN')}
                               </span>
-                              <span className="text-xs text-gray-500 line-through">
-                                ₹{Math.round(Number(product.rate) * 1.2).toLocaleString('en-IN')}
-                              </span>
-                              <span className="text-xs font-bold text-[#388e3c]">
-                                20% off
-                              </span>
+                              {product.mrp > product.rate && (
+                                <>
+                                  <span className="text-xs text-gray-500 line-through">
+                                    ₹{Number(product.mrp).toLocaleString('en-IN')}
+                                  </span>
+                                  <span className="text-xs font-bold text-[#388e3c]">
+                                    {calculateDiscount(product.mrp, product.rate)}% off
+                                  </span>
+                                </>
+                              )}
                             </div>
                           )}
                           <div className="flex-grow"></div>

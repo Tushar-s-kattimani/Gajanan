@@ -9,7 +9,7 @@ import { ProductManagement } from '@/components/product-management';
 import { AllOrders } from '@/components/all-orders';
 import { ShopManagement } from '@/components/shop-management';
 import { ShopRevenue } from '@/components/shop-revenue';
-import { StockReport } from '@/components/stock-report';
+import { VisitorAnalytics } from '@/components/visitor-analytics';
 import { query, collection, orderBy } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { MobileSidebar } from './mobile-sidebar';
@@ -37,8 +37,8 @@ export function AdminDashboard() {
         return <ShopManagement users={users || []} loading={usersLoading} />;
       case 'shop-revenue':
         return <ShopRevenue orders={orders || []} users={users || []} loading={ordersLoading || usersLoading} />;
-      case 'stock-report':
-        return <StockReport products={products || []} loading={productsLoading} />;
+      case 'visitor-analytics':
+        return <VisitorAnalytics />;
       case 'settings':
         return <AdminSettings />;
       default:

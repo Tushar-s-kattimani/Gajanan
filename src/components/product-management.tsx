@@ -62,6 +62,7 @@ const productSchema = z.object({
   size: z.string().min(1, 'Product size is required'),
   stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
   rate: z.coerce.number().min(0, 'Rate cannot be negative'),
+  mrp: z.coerce.number().optional(),
   position: z.coerce.number(),
   imageUrl: z.string().optional(),
   category: z.string().optional(),
@@ -249,9 +250,9 @@ export function ProductManagement() {
   const handleOpenDialog = (product: any | null = null) => {
     setEditingProduct(product);
     if (product) {
-      reset({ name: product.name, size: product.size, stock: product.stock, rate: product.rate, position: product.position, imageUrl: product.imageUrl, category: product.category || '' });
+      reset({ name: product.name, size: product.size, stock: product.stock, rate: product.rate, mrp: product.mrp || 0, position: product.position, imageUrl: product.imageUrl, category: product.category || '' });
     } else {
-      reset({ name: '', size: '', stock: 0, rate: 0, position: products.length, imageUrl: '', category: '' });
+      reset({ name: '', size: '', stock: 0, rate: 0, mrp: 0, position: products.length, imageUrl: '', category: '' });
     }
     setOpen(true);
   };
@@ -550,10 +551,17 @@ export function ProductManagement() {
                   <Input id="size" {...register('size')} />
                   {errors.size && <p className="text-sm text-red-500 mt-1">{errors.size.message}</p>}
                 </div>
-                <div>
-                  <Label htmlFor="rate">Rate (Price)</Label>
-                  <Input id="rate" type="number" step="0.01" {...register('rate')} />
-                  {errors.rate && <p className="text-sm text-red-500 mt-1">{errors.rate.message}</p>}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="mrp">Original Price (MRP)</Label>
+                    <Input id="mrp" type="number" step="0.01" {...register('mrp')} />
+                    {errors.mrp && <p className="text-sm text-red-500 mt-1">{errors.mrp.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="rate">Selling Price (Rate)</Label>
+                    <Input id="rate" type="number" step="0.01" {...register('rate')} />
+                    {errors.rate && <p className="text-sm text-red-500 mt-1">{errors.rate.message}</p>}
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="stock">Stock</Label>
