@@ -267,3 +267,31 @@
 .animate-blink {
   animation: animate-blink 1.2s ease-in-out infinite;
 }
+
+@keyframes ad-slide-loop {
+  0% { transform: translateX(120%); opacity: 0; }
+  5% { transform: translateX(0); opacity: 1; }
+  90% { transform: translateX(0); opacity: 1; }
+  95% { transform: translateX(-120%); opacity: 0; }
+  100% { transform: translateX(120%); opacity: 0; }
+}
+
+.animate-ad-slide {
+  animation: ad-slide-loop 10s ease-in-out infinite;
+}
+
+@keyframes item-float {
+  0%, 100% { 
+    transform: translateY(0px) scale(1); 
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.05)); 
+  }
+  50% { 
+    transform: translateY(-8px) scale(1.08); 
+    filter: drop-shadow(0 15px 10px rgba(0,0,0,0.15)); 
+  }
+}
+
+.animate-item-float {
+  animation: item-float 4s ease-in-out infinite;
+}
+

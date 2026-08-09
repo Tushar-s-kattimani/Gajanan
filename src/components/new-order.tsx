@@ -120,38 +120,38 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
             
             {/* Top Advertisement Banner */}
             {adSettings?.isActive && (
-              <div className="mb-4">
-                {adSettings.type === 'image' && adSettings.imageUrl ? (
-                  <div className="w-full h-32 sm:h-48 md:h-64 rounded-none sm:rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-                    <img src={getCleanImageUrl(adSettings.imageUrl)} alt="Advertisement" className="w-full h-full object-cover" />
-                  </div>
-                ) : adSettings.type === 'product' && adSettings.productId ? (
-                  (() => {
-                    const adProduct = products.find(p => p.id === adSettings.productId);
-                    if (!adProduct) return null;
-                    return (
-                      <div className="w-full relative rounded-none sm:rounded-md overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-4 sm:p-6 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-                        <div className="flex-1">
-                          <span className="inline-block bg-[#2874f0] text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-sm uppercase mb-2">Promoted</span>
-                          <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1">{adProduct.name}</h3>
-                          <div className="mb-3">
-                            <span className="inline-block border border-blue-300 bg-white px-3 py-1 rounded-sm text-sm font-bold text-blue-700 shadow-sm">
-                              {adProduct.size}
-                            </span>
+              <div className="mb-4 overflow-hidden">
+                <div className="animate-ad-slide">
+                  {adSettings.type === 'image' && adSettings.imageUrl ? (
+                    <div className="w-full h-32 sm:h-48 md:h-64 rounded-none sm:rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+                      <img src={getCleanImageUrl(adSettings.imageUrl)} alt="Advertisement" className="w-full h-full object-cover animate-item-float" />
+                    </div>
+                  ) : adSettings.type === 'product' && adSettings.productId ? (
+                    (() => {
+                      const adProduct = products.find(p => p.id === adSettings.productId);
+                      if (!adProduct) return null;
+                      return (
+                        <div className="w-full relative rounded-none sm:rounded-md overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-4 sm:p-6 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+                          <div className="flex-1">
+                            <span className="inline-block bg-[#2874f0] text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-sm uppercase mb-2">Promoted</span>
+                            <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1">{adProduct.name}</h3>
+                            <div className="mb-3">
+                              <span className="inline-block border border-blue-300 bg-white px-3 py-1 rounded-sm text-sm font-bold text-blue-700 shadow-sm">
+                                {adProduct.size}
+                              </span>
+                            </div>
+                            <p className="text-xl sm:text-3xl font-black text-[#2874f0]">₹{adProduct.rate}</p>
                           </div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className="text-xl sm:text-2xl font-bold text-gray-900">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
-                            <span className="text-sm text-gray-500 line-through">₹{Math.round(Number(adProduct.rate) * 1.2).toLocaleString('en-IN')}</span>
-                            <span className="text-sm font-bold text-[#388e3c]">Special Offer</span>
-                          </div>
+                          {adProduct.imageUrl && (
+                            <div className="w-24 h-24 sm:w-40 sm:h-40 flex-shrink-0 ml-4 bg-white rounded-full p-1 sm:p-2 border border-blue-200 shadow-sm overflow-visible">
+                              <img src={getCleanImageUrl(adProduct.imageUrl)} alt={adProduct.name} className="w-full h-full object-cover rounded-full animate-item-float" />
+                            </div>
+                          )}
                         </div>
-                        <div className="w-32 h-32 sm:w-48 sm:h-48 flex-shrink-0 bg-white rounded-full flex items-center justify-center p-4 border border-white shadow-lg">
-                           <img src={adProduct.imageUrl} alt={adProduct.name} className="max-h-full object-contain hover:scale-110 transition-transform" />
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : null}
+                      );
+                    })()
+                  ) : null}
+                </div>
               </div>
             )}
 
