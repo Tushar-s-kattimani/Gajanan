@@ -6,29 +6,24 @@ import { db } from '@/firebase/config';
 import { collection, addDoc, serverTimestamp, getDoc, doc } from 'firebase/firestore';
 
 export function VisitorTracker() {
-  const { user } = useUser();
-  const trackedRef = useRef(false);
+  const { user, loading, role } = useUser();
+  const lastLoggedUid = useRef<string | null>('initial');
 
   useEffect(() => {
-    // Only run this on the client
-    if (typeof window === 'undefined') return;
-    
-    // We use a 15-minute cooldown so we don't spam the database if they rapidly refresh,
-    // but if they leave the app open on their phone and come back later, it WILL log them again.
-    // We also key it by user UID so if they log in, it logs them again immediately with their real name.
-    const logKey = `last_visitor_log_${user?.uid || 'anon'}`;
-    const lastLogged = localStorage.getItem(logKey);
-    
-    if (lastLogged) {
-      const timeSinceLastLog = Date.now() - parseInt(lastLogged);
-      if (timeSinceLastLog < 15 * 60 * 1000) { // 15 minutes
-        return; // Skip logging if they just visited
-      }
-    }
+    // Only run this on the client, and wait until Firebase finishes checking the login state
+    if (typeof window === 'undefined' || loading) return;
 
-    const logVisit = async () => {
-      // Set the cooldown immediately
-      localStorage.setItem(logKey, Date.now().toString());
+    // Do not log admin visits
+    if (role === 'admin') return;
+
+    const currentUid = user ? user.uid : 'anon';
+    
+    const logVisit = async (isReopen: boolean = false) => {
+      // If it's just the initial mount, we check if we already logged this state
+      if (!isReopen) {
+        if (lastLoggedUid.current === currentUid) return;
+        lastLoggedUid.current = currentUid;
+      }
 
       let userDetails = 'Anonymous';
       if (user) {
@@ -75,19 +70,32 @@ export function VisitorTracker() {
           deviceType,
           browser,
           os,
-          userAgent: ua
+          userAgent: ua,
+          type: isReopen ? 'App Reopened' : 'Page Load'
         });
       } catch (error) {
         console.error("Error logging visit:", error);
       }
     };
 
-    // Delay slightly so it doesn't block main render
-    setTimeout(() => {
-      logVisit();
-    }, 2000);
+    // Run once on load/login
+    logVisit(false);
 
-  }, [user]); // Re-run if user logs in during the session
+    // Run every time they switch back to the tab or reopen the app on mobile
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // They just switched back to the app, log it!
+        logVisit(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+
+  }, [user, loading]);
 
   return null;
 }
