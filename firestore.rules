@@ -15,19 +15,18 @@ service cloud.firestore {
 
     // Rules for the 'users' collection
     match /users/{userId} {
-      // Allow any authenticated user to read user profiles.
-      // This is necessary for shops to fetch admin details (like UPI ID).
-      allow read: if request.auth != null;
-      
+      // Allow any authenticated user to read and list user profiles.
+      // This is necessary for shops to fetch the admin's UPI details.
+      allow read, list: if request.auth != null;
       // Only the owner or an admin can write to a user document.
-      allow write: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin() || isOwner(userId);
     }
 
     // Rules for the 'products' collection
     match /products/{productId} {
       allow read: if request.auth != null;
-      // Allow write for admins.
-      allow write: if isAdmin();
+      // Allow write for admins, OR for any authenticated user (for stock updates during orders)
+      allow write: if isAdmin() || request.auth != null;
     }
 
     // Rules for the 'orders' collection
@@ -41,12 +40,8 @@ service cloud.firestore {
                     request.resource.data.status == "Pending" &&
                     request.resource.data.createdAt == request.time;
 
-      // Admins can update orders (e.g., change status)
-      // Shops should not be able to update their own orders after placing them.
-      allow update: if isAdmin();
-      
-      // Only admins can delete orders
-      allow delete: if isAdmin();
+      // Only admins can update or delete orders
+      allow update, delete: if isAdmin();
     }
 
     // Rules for 'laborers' and 'attendance' collections
@@ -56,6 +51,12 @@ service cloud.firestore {
 
     match /attendance/{attendanceId} {
       allow read, write: if isAdmin();
+    }
+
+    // Rules for 'settings' collection
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

@@ -28,7 +28,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/components/ui/use-toast';
-import { addDoc, collection, doc, updateDoc, deleteDoc, writeBatch, query, orderBy } from 'firebase/firestore';
+import { addDoc, collection, doc, updateDoc, deleteDoc, writeBatch, query, orderBy, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, storage } from '@/firebase/config';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useCollection } from '@/firebase';
@@ -136,6 +136,35 @@ export function ProductManagement() {
   const [products, setProducts] = useState<any[]>([]);
   const [isOrderChanged, setIsOrderChanged] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  
+  const [adSettings, setAdSettings] = useState({
+    isActive: false,
+    type: 'image',
+    imageUrl: '',
+    productId: ''
+  });
+  const [isAdSaving, setIsAdSaving] = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (docSnap) => {
+      if (docSnap.exists()) {
+        setAdSettings(docSnap.data() as any);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSaveAdSettings = async () => {
+    setIsAdSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'advertisement'), adSettings);
+      toast({ title: 'Success', description: 'Advertisement settings saved.' });
+    } catch(e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save ad settings.' });
+    } finally {
+      setIsAdSaving(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -290,6 +319,79 @@ export function ProductManagement() {
 
 
   return (
+    <div className="space-y-6">
+      {/* Advertisement Banner Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2"><Megaphone className="h-5 w-5 text-amber-500"/> Advertisement Banner Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input 
+              type="checkbox" 
+              id="ad-active"
+              checked={adSettings.isActive}
+              onChange={(e) => setAdSettings({...adSettings, isActive: e.target.checked})}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <Label htmlFor="ad-active" className="font-semibold cursor-pointer">Enable Top Advertisement Banner in New Order Page</Label>
+          </div>
+          
+          {adSettings.isActive && (
+            <div className="pl-6 space-y-4 pt-2 border-l-2 border-gray-100">
+              <div className="flex gap-4 items-center">
+                 <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="adType" value="image" checked={adSettings.type === 'image'} onChange={() => setAdSettings({...adSettings, type: 'image'})} className="text-blue-600" />
+                    <span>Custom Image URL</span>
+                 </label>
+                 <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="adType" value="product" checked={adSettings.type === 'product'} onChange={() => setAdSettings({...adSettings, type: 'product'})} className="text-blue-600" />
+                    <span>Select Product</span>
+                 </label>
+              </div>
+              
+              {adSettings.type === 'image' && (
+                <div>
+                  <Label>Image URL (Web Link or Local Path)</Label>
+                  <Input 
+                    placeholder="https://example.com/banner.jpg" 
+                    value={adSettings.imageUrl}
+                    onChange={(e) => setAdSettings({...adSettings, imageUrl: e.target.value})}
+                    className="mt-1 max-w-md"
+                  />
+                  {adSettings.imageUrl && (
+                    <div className="mt-2 h-24 max-w-md rounded border flex items-center justify-center bg-gray-50 overflow-hidden">
+                       <img src={getCleanImageUrl(adSettings.imageUrl)} alt="Preview" className="max-h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {adSettings.type === 'product' && (
+                <div>
+                  <Label>Select Product to Highlight</Label>
+                  <select 
+                    value={adSettings.productId}
+                    onChange={(e) => setAdSettings({...adSettings, productId: e.target.value})}
+                    className="mt-1 block w-full max-w-md rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">-- Choose a product --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.size})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <Button onClick={handleSaveAdSettings} disabled={isAdSaving} className="mt-2">
+            {isAdSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save Banner Settings
+          </Button>
+        </CardContent>
+      </Card>
+
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <CardTitle>Product Inventory</CardTitle>
@@ -392,5 +494,6 @@ export function ProductManagement() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }

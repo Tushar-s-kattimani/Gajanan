@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, PlusCircle, Trash2, Plus, Minus, ShoppingBasket, Image as ImageIcon, Megaphone } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
@@ -35,6 +37,17 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  
+  const [adSettings, setAdSettings] = useState<any>(null);
+  
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (docSnap) => {
+      if (docSnap.exists()) {
+        setAdSettings(docSnap.data());
+      }
+    });
+    return () => unsub();
+  }, []);
   
   const cartTotal = cart.reduce((total, item) => total + ((item.rate || 0) * item.quantity), 0);
   const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
@@ -79,7 +92,41 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
           <CardHeader className="px-0">
             <CardTitle className="text-2xl font-bold tracking-tight">Available Products</CardTitle>
           </CardHeader>
-          <CardContent className="px-0">
+          <CardContent className="px-0 space-y-4">
+            
+            {/* Top Advertisement Banner */}
+            {adSettings?.isActive && (
+              <div className="mb-4">
+                {adSettings.type === 'image' && adSettings.imageUrl ? (
+                  <div className="w-full h-32 sm:h-48 md:h-64 rounded-none sm:rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+                    <img src={getCleanImageUrl(adSettings.imageUrl)} alt="Advertisement" className="w-full h-full object-cover" />
+                  </div>
+                ) : adSettings.type === 'product' && adSettings.productId ? (
+                  (() => {
+                    const adProduct = products.find(p => p.id === adSettings.productId);
+                    if (!adProduct) return null;
+                    return (
+                      <div className="w-full relative rounded-none sm:rounded-md overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-4 sm:p-6 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+                        <div className="flex-1">
+                          <span className="inline-block bg-[#2874f0] text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-sm uppercase mb-2">Promoted</span>
+                          <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1">{adProduct.name}</h3>
+                          <p className="text-sm text-gray-600 mb-3">{adProduct.size}</p>
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="text-xl sm:text-2xl font-bold text-gray-900">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
+                            <span className="text-sm text-gray-500 line-through">₹{Math.round(Number(adProduct.rate) * 1.2).toLocaleString('en-IN')}</span>
+                            <span className="text-sm font-bold text-[#388e3c]">Special Offer</span>
+                          </div>
+                        </div>
+                        <div className="w-32 h-32 sm:w-48 sm:h-48 flex-shrink-0 bg-white rounded-full flex items-center justify-center p-4 border border-white shadow-lg">
+                           <img src={adProduct.imageUrl} alt={adProduct.name} className="max-h-full object-contain hover:scale-110 transition-transform" />
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : null}
+              </div>
+            )}
+            
             {loading ? (
               <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin" /></div>
             ) : (
