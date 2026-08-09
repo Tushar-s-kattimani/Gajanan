@@ -32,7 +32,7 @@ import { addDoc, collection, doc, updateDoc, deleteDoc, writeBatch, query, order
 import { db, storage } from '@/firebase/config';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useCollection } from '@/firebase';
-import { Loader2, PackagePlus, GripVertical, Save, Trash, Image as ImageIcon, Megaphone } from 'lucide-react';
+import { Loader2, PackagePlus, GripVertical, Save, Trash, Image as ImageIcon, Megaphone, FolderPlus, X } from 'lucide-react';
 import Image from 'next/image';
 import placeholderImageData from '@/lib/placeholder-images.json';
 
@@ -64,6 +64,7 @@ const productSchema = z.object({
   rate: z.coerce.number().min(0, 'Rate cannot be negative'),
   position: z.coerce.number(),
   imageUrl: z.string().optional(),
+  category: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -144,6 +145,62 @@ export function ProductManagement() {
     productId: ''
   });
   const [isAdSaving, setIsAdSaving] = useState(false);
+  
+  const [categories, setCategories] = useState<any[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryImageUrl, setNewCategoryImageUrl] = useState('');
+  const [isCategorySaving, setIsCategorySaving] = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'categories'), (docSnap) => {
+      if (docSnap.exists()) {
+        const rawList = docSnap.data().list || [];
+        const parsedList = rawList.map((item: any) => 
+          typeof item === 'string' ? { name: item, imageUrl: '' } : item
+        );
+        setCategories(parsedList);
+      } else {
+        // Initialize with default categories
+        setDoc(doc(db, 'settings', 'categories'), { 
+          list: [
+            { name: 'pepsi', imageUrl: '' }, 
+            { name: 'Bindu', imageUrl: '' }, 
+            { name: 'water', imageUrl: '' }
+          ] 
+        });
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    setIsCategorySaving(true);
+    try {
+      const updatedList = [...categories, { name: newCategoryName.trim(), imageUrl: newCategoryImageUrl.trim() }];
+      await setDoc(doc(db, 'settings', 'categories'), { list: updatedList }, { merge: true });
+      setNewCategoryName('');
+      setNewCategoryImageUrl('');
+      toast({ title: 'Success', description: 'Category added.' });
+    } catch(e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add category.' });
+    } finally {
+      setIsCategorySaving(false);
+    }
+  };
+
+  const handleRemoveCategory = async (catNameToRemove: string) => {
+    setIsCategorySaving(true);
+    try {
+      const updatedList = categories.filter(c => c.name !== catNameToRemove);
+      await setDoc(doc(db, 'settings', 'categories'), { list: updatedList }, { merge: true });
+      toast({ title: 'Success', description: 'Category removed.' });
+    } catch(e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove category.' });
+    } finally {
+      setIsCategorySaving(false);
+    }
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (docSnap) => {
@@ -192,9 +249,9 @@ export function ProductManagement() {
   const handleOpenDialog = (product: any | null = null) => {
     setEditingProduct(product);
     if (product) {
-      reset({ name: product.name, size: product.size, stock: product.stock, rate: product.rate, position: product.position, imageUrl: product.imageUrl });
+      reset({ name: product.name, size: product.size, stock: product.stock, rate: product.rate, position: product.position, imageUrl: product.imageUrl, category: product.category || '' });
     } else {
-      reset({ name: '', size: '', stock: 0, rate: 0, position: products.length, imageUrl: '' });
+      reset({ name: '', size: '', stock: 0, rate: 0, position: products.length, imageUrl: '', category: '' });
     }
     setOpen(true);
   };
@@ -392,6 +449,50 @@ export function ProductManagement() {
         </CardContent>
       </Card>
 
+      {/* Category Management Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2"><FolderPlus className="h-5 w-5 text-blue-500"/> Product Categories</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            {categories.map((cat, idx) => (
+              <div key={idx} className="flex items-center gap-2 bg-gray-50 border border-gray-200 pl-1 pr-3 py-1 rounded-full text-sm font-medium text-gray-700 shadow-sm">
+                <div className="h-6 w-6 rounded-full bg-white border border-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0">
+                  {cat.imageUrl ? (
+                    <img src={getCleanImageUrl(cat.imageUrl)} alt={cat.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-3 w-3 text-gray-400" />
+                  )}
+                </div>
+                <span>{cat.name}</span>
+                <button onClick={() => handleRemoveCategory(cat.name)} className="text-gray-400 hover:text-red-500 transition-colors ml-1" disabled={isCategorySaving}>
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 max-w-xl mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <Input 
+              placeholder="New Category Name" 
+              value={newCategoryName} 
+              onChange={(e) => setNewCategoryName(e.target.value)} 
+              className="w-1/3"
+            />
+            <Input 
+              placeholder="Image URL (optional)" 
+              value={newCategoryImageUrl} 
+              onChange={(e) => setNewCategoryImageUrl(e.target.value)} 
+              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+              className="flex-1"
+            />
+            <Button onClick={handleAddCategory} disabled={!newCategoryName.trim() || isCategorySaving}>
+              Add
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <CardTitle>Product Inventory</CardTitle>
@@ -430,6 +531,19 @@ export function ProductManagement() {
                   <Label htmlFor="name">Product Name</Label>
                   <Input id="name" {...register('name')} />
                   {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <select
+                    id="category"
+                    {...register('category')}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">-- None --</option>
+                    {categories.map((cat, idx) => (
+                      <option key={idx} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <Label htmlFor="size">Size</Label>

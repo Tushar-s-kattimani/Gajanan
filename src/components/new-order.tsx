@@ -4,7 +4,7 @@ import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, PlusCircle, Trash2, Plus, Minus, ShoppingBasket, Image as ImageIcon, Megaphone } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Plus, Minus, ShoppingBasket, Image as ImageIcon, Megaphone, PackagePlus } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase/config';
@@ -40,6 +40,22 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
   
   const [adSettings, setAdSettings] = useState<any>(null);
   
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'categories'), (docSnap) => {
+      if (docSnap.exists()) {
+        const rawList = docSnap.data().list || [];
+        const parsedList = rawList.map((item: any) => 
+          typeof item === 'string' ? { name: item, imageUrl: '' } : item
+        );
+        setCategories(parsedList);
+      }
+    });
+    return () => unsub();
+  }, []);
+  
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (docSnap) => {
       if (docSnap.exists()) {
@@ -69,6 +85,18 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
     setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
   };
   
+  const handleClearCart = () => {
+    clearCart();
+    setQuantities({});
+  };
+  
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === 'All') {
+      return products;
+    }
+    return products.filter(p => p.category === selectedCategory);
+  }, [products, selectedCategory]);
+  
   const handleAddToCart = (product: any) => {
     const quantityToAdd = quantities[product.id] || 1;
      if (isNaN(quantityToAdd) || quantityToAdd < 1) {
@@ -89,10 +117,6 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
       <div className="lg:col-span-2">
         <Card className="shadow-none border-none bg-transparent">
-          <CardHeader className="px-0">
-            <CardTitle className="text-2xl font-bold tracking-tight">Available Products</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 space-y-4">
             
             {/* Top Advertisement Banner */}
             {adSettings?.isActive && (
@@ -110,7 +134,11 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                         <div className="flex-1">
                           <span className="inline-block bg-[#2874f0] text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-sm uppercase mb-2">Promoted</span>
                           <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1">{adProduct.name}</h3>
-                          <p className="text-sm text-gray-600 mb-3">{adProduct.size}</p>
+                          <div className="mb-3">
+                            <span className="inline-block border border-blue-300 bg-white px-3 py-1 rounded-sm text-sm font-bold text-blue-700 shadow-sm">
+                              {adProduct.size}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-2 mb-4">
                             <span className="text-xl sm:text-2xl font-bold text-gray-900">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
                             <span className="text-sm text-gray-500 line-through">₹{Math.round(Number(adProduct.rate) * 1.2).toLocaleString('en-IN')}</span>
@@ -126,12 +154,64 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                 ) : null}
               </div>
             )}
+
+          {categories.length > 0 && (
+            <div className="mb-6 bg-white py-4 px-2 shadow-sm rounded-lg border border-gray-100 overflow-hidden">
+              <div className="flex items-start gap-3 sm:gap-6 overflow-x-auto no-scrollbar pb-2">
+                <button
+                  onClick={() => setSelectedCategory('All')}
+                  className="flex flex-col items-center gap-2 group w-[72px] sm:w-[84px] flex-shrink-0 cursor-pointer"
+                >
+                  <div className={`h-[64px] w-[64px] sm:h-[76px] sm:w-[76px] rounded-full flex items-center justify-center transition-all shadow-sm ${
+                    selectedCategory === 'All' 
+                      ? 'bg-blue-50 border-2 border-[#2874f0]' 
+                      : 'bg-gray-50 border-2 border-transparent group-hover:border-gray-300 group-hover:shadow-md'
+                  }`}>
+                    <PackagePlus className={`h-7 w-7 sm:h-9 sm:w-9 ${selectedCategory === 'All' ? 'text-[#2874f0]' : 'text-gray-500'}`} />
+                  </div>
+                  <span className={`text-[11px] sm:text-xs text-center line-clamp-2 leading-tight tracking-tight ${selectedCategory === 'All' ? 'text-[#2874f0] font-bold' : 'text-gray-700 font-medium'}`}>
+                    All Products
+                  </span>
+                </button>
+
+                {categories.map((cat, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className="flex flex-col items-center gap-2 group w-[72px] sm:w-[84px] flex-shrink-0 cursor-pointer"
+                  >
+                    <div className={`h-[64px] w-[64px] sm:h-[76px] sm:w-[76px] rounded-full overflow-hidden flex items-center justify-center transition-all p-1 shadow-sm ${
+                      selectedCategory === cat.name 
+                        ? 'border-2 border-[#2874f0] bg-blue-50' 
+                        : 'border-2 border-transparent bg-gray-50 group-hover:border-gray-300 group-hover:shadow-md'
+                    }`}>
+                      <div className="h-full w-full rounded-full overflow-hidden bg-white flex items-center justify-center">
+                        {cat.imageUrl ? (
+                           <img src={getCleanImageUrl(cat.imageUrl)} alt={cat.name} className="h-full w-full object-cover" />
+                        ) : (
+                           <span className={`font-bold text-2xl uppercase ${selectedCategory === cat.name ? 'text-[#2874f0]' : 'text-gray-400'}`}>{cat.name.charAt(0)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-[11px] sm:text-xs text-center line-clamp-2 leading-tight tracking-tight ${selectedCategory === cat.name ? 'text-[#2874f0] font-bold' : 'text-gray-700 font-medium'}`}>
+                      {cat.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-2xl font-bold tracking-tight">Available Products</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0">
             
             {loading ? (
               <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin" /></div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-1 sm:gap-4 bg-gray-100 p-1 sm:bg-transparent sm:p-0">
-                {products.map((product) => {
+                {filteredProducts.map((product) => {
                    return (
                     <Card key={product.id} className={`flex flex-col bg-white overflow-hidden transition-shadow duration-300 border border-gray-200/60 sm:border-gray-200 rounded-none sm:rounded-sm ${
                         product.isAd
@@ -162,7 +242,11 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
                       </div>
                       <div className="p-3 sm:p-4 flex flex-col flex-grow bg-white border-t border-gray-50 sm:border-none">
                           <h3 className="font-medium text-sm sm:text-base text-gray-800 line-clamp-2 hover:text-[#2874f0] cursor-pointer leading-tight">{product.name}</h3>
-                          <p className="text-xs text-gray-500 mt-1.5">{product.size}</p>
+                          <div className="mt-1.5">
+                            <span className="inline-block border border-gray-300 bg-gray-50/80 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm text-[10px] sm:text-xs font-semibold text-gray-700 shadow-sm hover:border-[#2874f0] hover:text-[#2874f0] transition-colors cursor-pointer">
+                              {product.size}
+                            </span>
+                          </div>
                           {product.rate != null && (
                             <div className="mt-2 flex items-center flex-wrap gap-1.5">
                               <span className="font-bold text-base sm:text-lg text-gray-900">
