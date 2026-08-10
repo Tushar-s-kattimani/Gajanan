@@ -1,17 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { collection, query, orderBy, onSnapshot, where, Timestamp, writeBatch, doc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
-import { Loader2, Users, MonitorSmartphone, Clock, Trash2, Wand2 } from 'lucide-react';
+import { Loader2, Users, MonitorSmartphone, Clock, Trash2, Wand2, MessageSquare } from 'lucide-react';
+import { Line, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 export function VisitorAnalytics() {
   const [visitors, setVisitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chartVisitors, setChartVisitors] = useState<any[]>([]);
+  const [chartLoading, setChartLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0] // Format: YYYY-MM-DD
@@ -42,6 +48,31 @@ export function VisitorAnalytics() {
     return () => unsubscribe();
   }, [selectedDate]);
 
+  useEffect(() => {
+    setChartLoading(true);
+    
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const start = new Date();
+    start.setDate(start.getDate() - 27); // Last 28 days
+    start.setHours(0, 0, 0, 0);
+
+    const q = query(
+      collection(db, 'visitors'),
+      where('timestamp', '>=', Timestamp.fromDate(start)),
+      where('timestamp', '<=', Timestamp.fromDate(end)),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setChartVisitors(data);
+      setChartLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Calculate metrics based on CURRENT filtered date
   const todayVisits = visitors.length;
   
@@ -51,6 +82,145 @@ export function VisitorAnalytics() {
   const uniqueVisitorsToday = uniqueSignatures.size;
 
   const loggedInVisitsToday = visitors.filter(v => v.userDetails !== 'Anonymous').length;
+
+  const hourlyChartData = useMemo(() => {
+    const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+      hour: `${i.toString().padStart(2, '0')}:00`,
+      signatures: new Set<string>()
+    }));
+
+    visitors.forEach(v => {
+      if (v.timestamp) {
+        const date = v.timestamp.toDate();
+        const hour = date.getHours();
+        const sig = `${v.userDetails}-${v.browser}-${v.os}`;
+        if (hour >= 0 && hour < 24) {
+          hourlyData[hour].signatures.add(sig);
+        }
+      }
+    });
+
+    return {
+      labels: hourlyData.map(d => d.hour),
+      datasets: [
+        {
+          label: 'Unique Visitors (Hourly)',
+          data: hourlyData.map(d => d.signatures.size),
+          backgroundColor: 'rgba(234, 179, 8, 0.5)',
+          borderColor: 'rgba(234, 179, 8, 1)',
+          borderWidth: 2,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [visitors]);
+
+  const dailyChartData = useMemo(() => {
+    const days: string[] = [];
+    const dailyData: Record<string, Set<string>> = {};
+    
+    // Generate last 7 days labels
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+      days.push(dateStr);
+      dailyData[dateStr] = new Set();
+    }
+
+    chartVisitors.forEach(v => {
+      if (v.timestamp) {
+        const date = v.timestamp.toDate();
+        const dateStr = date.toLocaleDateString('en-CA');
+        const sig = `${v.userDetails}-${v.browser}-${v.os}`;
+        if (dailyData[dateStr]) {
+          dailyData[dateStr].add(sig);
+        }
+      }
+    });
+
+    return {
+      labels: days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })),
+      datasets: [
+        {
+          label: 'Unique Visitors (Last 7 Days)',
+          data: days.map(d => dailyData[d].size),
+          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 2,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [chartVisitors]);
+
+  const weeklyChartData = useMemo(() => {
+    const weeks: string[] = [];
+    const weeklyData: Record<string, Set<string>> = {};
+    
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    
+    for (let i = 3; i >= 0; i--) {
+      const endOfWeek = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const startOfWeek = new Date(endOfWeek.getTime() - 6 * 24 * 60 * 60 * 1000);
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const label = `${startOfWeek.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+      weeks.push(label);
+      weeklyData[label] = new Set();
+    }
+
+    chartVisitors.forEach(v => {
+      if (v.timestamp) {
+        const date = v.timestamp.toDate();
+        const sig = `${v.userDetails}-${v.browser}-${v.os}`;
+        
+        for (let i = 3; i >= 0; i--) {
+          const endOfWeek = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+          const startOfWeek = new Date(endOfWeek.getTime() - 6 * 24 * 60 * 60 * 1000);
+          startOfWeek.setHours(0, 0, 0, 0);
+          
+          if (date >= startOfWeek && date <= endOfWeek) {
+            const label = `${startOfWeek.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+            if (weeklyData[label]) {
+              weeklyData[label].add(sig);
+            }
+            break;
+          }
+        }
+      }
+    });
+
+    return {
+      labels: weeks,
+      datasets: [
+        {
+          label: 'Unique Visitors (Last 4 Weeks)',
+          data: weeks.map(w => weeklyData[w].size),
+          backgroundColor: 'rgba(34, 197, 94, 0.5)',
+          borderColor: 'rgba(34, 197, 94, 1)',
+          borderWidth: 2,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [chartVisitors]);
+
+  const visitorPhoneNumbers = useMemo(() => {
+    const phones = new Set<string>();
+    visitors.forEach(v => {
+      if (v.userDetails && v.userDetails !== 'Anonymous') {
+        const match = v.userDetails.match(/\b\d{10}\b/);
+        if (match) {
+          phones.add(match[0]);
+        }
+      }
+    });
+    return Array.from(phones).join(',');
+  }, [visitors]);
+
+  const smsMessage = "Hi from Gajanan Enterprises (Pepsi Distributor), GHATAPRABHA! 🥤 If you have any new orders, please send the orders in the app only! 📱📦🚚";
 
   const handleClearLog = async () => {
     if (!window.confirm(`Are you sure you want to delete all ${visitors.length} visitor logs for ${selectedDate}?`)) {
@@ -191,6 +361,57 @@ export function VisitorAnalytics() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Hourly Trend ({selectedDate})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {visitors.length > 0 ? (
+                <Line data={hourlyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-gray-500">No data available.</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Trend (Last 7 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {chartLoading ? (
+                <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+              ) : chartVisitors.length > 0 ? (
+                <Line data={dailyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-gray-500">No data available.</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2 xl:col-span-1">
+          <CardHeader>
+            <CardTitle>Weekly Trend (Last 4 Weeks)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {chartLoading ? (
+                <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+              ) : chartVisitors.length > 0 ? (
+                <Bar data={weeklyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-gray-500">No data available.</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>Visitor Log</CardTitle>
@@ -209,6 +430,14 @@ export function VisitorAnalytics() {
               {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
               Remove Duplicates
             </Button>
+            {visitorPhoneNumbers && (
+              <a href={`sms:${visitorPhoneNumbers}?body=${encodeURIComponent(smsMessage)}`}>
+                <Button variant="default" title="Send SMS to all identified visitors">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  SMS All
+                </Button>
+              </a>
+            )}
             <Button 
               variant="destructive" 
               onClick={handleClearLog}
