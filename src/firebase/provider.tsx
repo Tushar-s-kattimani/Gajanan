@@ -17,44 +17,67 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
-        // We only automatically sign in verified users or admins
-        if (user.emailVerified || assignUserRole(user.email || '') === 'admin') {
+        // Automatically sign in admins
+        if (assignUserRole(user.email || '') === 'admin') {
           setUser(user);
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
 
           if (userDoc.exists()) {
-            setRole(userDoc.data().role || 'shop');
+            setRole(userDoc.data().role || 'admin');
           } else {
-            // New user (likely first-time admin or verified shop)
-            const newRole = assignUserRole(user.email || '');
             const userData: any = {
               uid: user.uid,
               email: user.email,
-              role: newRole,
+              role: 'admin',
               createdAt: serverTimestamp(),
+              profileName: user.email?.split('@')[0] || 'Admin',
+              upiId: ''
             };
-             if (newRole === 'shop') {
-              userData.profileName = '';
-              userData.phoneNumber = '';
-              userData.shopName = '';
-              userData.location = '';
-              userData.imageUrl = '';
-            }
-            if (newRole === 'admin') {
-              userData.profileName = user.email?.split('@')[0] || 'Admin';
-              userData.upiId = '';
-            }
             await setDoc(userDocRef, userData);
-            setRole(newRole);
+            setRole('admin');
           }
         } else {
-          // User exists but is not verified, so we don't sign them in.
-          // The login page will handle the verification prompt.
-          setUser(null);
-          setRole(null);
-          // We sign them out to prevent access to authenticated routes
-          await firebaseSignOut(auth);
+           // Handle shop users
+           const userDocRef = doc(db, 'users', user.uid);
+           const userDoc = await getDoc(userDocRef);
+
+           if (userDoc.exists()) {
+              const data = userDoc.data();
+              if (data.status === 'pending') {
+                 setUser(null);
+                 setRole(null);
+                 await firebaseSignOut(auth);
+              } else if (data.status === 'suspended') {
+                 setUser(null);
+                 setRole(null);
+                 await firebaseSignOut(auth);
+              } else {
+                 setUser(user);
+                 setRole(data.role || 'shop');
+              }
+           } else {
+             // New shop user signup
+             const newRole = 'shop';
+             const userData: any = {
+              uid: user.uid,
+              email: user.email,
+              role: newRole,
+              status: 'pending', // IMPORTANT: New shops are pending
+              createdAt: serverTimestamp(),
+              profileName: '',
+              phoneNumber: '',
+              shopName: '',
+              location: '',
+              imageUrl: ''
+            };
+            await setDoc(userDocRef, userData);
+            
+            // They are pending, so don't log them in
+            setUser(null);
+            setRole(null);
+            await firebaseSignOut(auth);
+           }
         }
       } else {
         setUser(null);
@@ -67,25 +90,31 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, pass: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    if (userCredential.user && assignUserRole(email) === 'shop') {
-      await sendEmailVerification(userCredential.user);
-      // Sign out immediately so they must verify first.
-      await firebaseSignOut(auth); 
-    }
     return userCredential;
   };
 
   const signIn = async (email: string, pass: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      if (userCredential.user && !userCredential.user.emailVerified && assignUserRole(email) === 'shop') {
-          // Don't let the provider auto-sign them in.
-          await firebaseSignOut(auth); 
-          // Throw a custom error for the login page to catch.
-          const error: any = new Error("Email not verified");
-          error.code = 'auth/unverified-email';
-          error.unverifiedUser = userCredential.user; // Attach the user object
-          throw error;
+      if (userCredential.user && assignUserRole(email) === 'shop') {
+          // Check if they are pending approval
+          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+              const status = userDoc.data().status;
+              if (status === 'pending') {
+                  await firebaseSignOut(auth); 
+                  const error: any = new Error("Pending admin approval");
+                  error.code = 'auth/admin-approval-pending';
+                  throw error;
+              } else if (status === 'suspended') {
+                  await firebaseSignOut(auth); 
+                  const error: any = new Error("Account suspended");
+                  error.code = 'auth/account-suspended';
+                  throw error;
+              }
+          }
       }
       return userCredential;
     } catch (error: any) {

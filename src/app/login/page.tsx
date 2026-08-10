@@ -21,11 +21,9 @@ export default function LoginPage() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [unverifiedUser, setUnverifiedUser] = useState<User | null>(null);
 
-  const { signIn, user, loading: authLoading, signUp, sendVerificationEmail } = useUser();
+  const { signIn, user, loading: authLoading, signUp } = useUser();
   const router = useRouter();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -44,50 +42,29 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError('');
-    setUnverifiedUser(null);
     
     try {
       await signIn(shopEmail, shopPassword);
-      // This part will now only run on successful login if user is verified
     } catch (e: any) {
        let friendlyMessage = 'An unexpected error occurred. Please try again.';
        
-       if (e.code === 'auth/unverified-email' && e.unverifiedUser) {
-         setError('Please verify your email address to log in.');
-         setUnverifiedUser(e.unverifiedUser);
+       if (e.code === 'auth/admin-approval-pending') {
+         setError('Your account is pending admin approval. You will be able to log in once an admin approves your request.');
+       } else if (e.code === 'auth/account-suspended') {
+         setError('Your account has been suspended by the administrator. Please contact support.');
        } else if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
         friendlyMessage = 'Invalid email or password. Please try again.';
         setError(friendlyMessage);
       } else {
         setError('An unexpected error occurred. Please try again.');
-        console.error(e); // Log the full error for debugging
+        console.error(e);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendVerification = async () => {
-    if (!unverifiedUser) return;
-    setLoading(true);
-    try {
-        await sendVerificationEmail(unverifiedUser);
-        toast({
-            title: 'Verification Email Sent',
-            description: `A new verification link has been sent to ${unverifiedUser.email}.`,
-        });
-        setError('');
-        setUnverifiedUser(null);
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: `Failed to send verification email: ${error.message}`,
-        });
-    } finally {
-        setLoading(false);
-    }
-  };
+
 
 
   const handleAdminSignIn = async () => {
@@ -151,7 +128,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-6 sm:pb-8 px-4 sm:px-8">
-          <Tabs defaultValue="shop" className="w-full" onValueChange={() => {setError(''); setUnverifiedUser(null);}}>
+          <Tabs defaultValue="shop" className="w-full" onValueChange={() => {setError('');}}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="shop"><UserIcon className="mr-2 h-4 w-4" /> Shop</TabsTrigger>
               <TabsTrigger value="admin"><Shield className="mr-2 h-4 w-4" /> Admin</TabsTrigger>
@@ -183,22 +160,11 @@ export default function LoginPage() {
                 <div className="space-y-3 pt-2">
                     <Button
                     onClick={handleShopSignIn}
-                    disabled={loading && !unverifiedUser}
+                    disabled={loading}
                     className="w-full py-5 sm:py-6 text-base sm:text-lg"
                     >
-                    {loading && !unverifiedUser ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Sign In'}
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Sign In'}
                     </Button>
-                     {unverifiedUser && (
-                        <Button
-                            variant="secondary"
-                            onClick={handleResendVerification}
-                            disabled={loading}
-                            className="w-full py-5 sm:py-6"
-                        >
-                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MailWarning className="mr-2 h-4 w-4" />}
-                            Resend Verification Email
-                        </Button>
-                     )}
                      <p className="text-center text-sm text-muted-foreground">
                         Don&apos;t have an account?{' '}
                         <Link href="/signup" className="font-semibold text-primary hover:underline">

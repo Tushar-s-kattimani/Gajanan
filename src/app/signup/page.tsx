@@ -16,7 +16,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [showApprovalMessage, setShowApprovalMessage] = useState(false);
   const [emailInUse, setEmailInUse] = useState(false);
 
   const { signUp, sendPasswordReset } = useUser();
@@ -39,10 +39,10 @@ export default function SignUpPage() {
     setLoading(true);
     setError('');
     setEmailInUse(false);
-    setShowVerificationMessage(false);
+    setShowApprovalMessage(false);
     try {
       await signUp(email, password);
-      setShowVerificationMessage(true);
+      setShowApprovalMessage(true);
     } catch (e: any) {
       let friendlyMessage = 'An unexpected error occurred during sign up.';
       if (e.code === 'auth/email-already-in-use') {
@@ -93,14 +93,14 @@ export default function SignUpPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-8 px-8">
-           {showVerificationMessage ? (
+           {showApprovalMessage ? (
                 <div className="space-y-6 text-center">
                     <div className="flex justify-center">
-                         <MailWarning className="h-12 w-12 text-green-500" />
+                         <UserPlus className="h-12 w-12 text-primary" />
                     </div>
-                    <h3 className="text-xl font-semibold">Verify Your Email</h3>
+                    <h3 className="text-xl font-semibold">Account Pending Approval</h3>
                     <p className="text-muted-foreground">
-                        Account created successfully! We&apos;ve sent a verification link to your email address. Please check your inbox and follow the link to activate your account before signing in.
+                        Your account has been created successfully! However, it must be approved by an administrator before you can log in. We will notify you once you have been granted access.
                     </p>
                     <Button asChild className="w-full py-6 text-lg">
                         <Link href="/login">Back to Sign In</Link>

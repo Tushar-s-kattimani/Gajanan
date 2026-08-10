@@ -5,12 +5,13 @@ service cloud.firestore {
 
     // Helper function to check if the user has the 'admin' role
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      let userDoc = /databases/$(database)/documents/users/$(request.auth.uid);
+      return request.auth != null && exists(userDoc) && get(userDoc).data.role == 'admin';
     }
 
     // Helper function to check if the user is the owner of the document
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     // Rules for the 'users' collection

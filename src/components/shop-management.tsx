@@ -6,13 +6,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, User as UserIcon, MessageSquare, Tag } from 'lucide-react';
+import { Loader2, User as UserIcon, MessageSquare, Tag, CheckCircle, Ban, PlayCircle } from 'lucide-react';
 import Image from 'next/image';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { useToast } from '@/components/ui/use-toast';
 
 export function ShopManagement({ users = [], loading }: { users: any[], loading: boolean }) {
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [offerText, setOfferText] = useState('');
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleStatusChange = async (userId: string, newStatus: 'approved' | 'suspended') => {
+    setApprovingId(userId);
+    try {
+      await updateDoc(doc(db, 'users', userId), { status: newStatus });
+      toast({ title: `Shop ${newStatus} successfully!` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: `Error updating shop`, description: e.message });
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   const uniqueLocations = useMemo(() => {
     const locations = users
@@ -27,6 +44,13 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
       return user.location?.toLowerCase() === locationFilter.toLowerCase();
     }
     return true;
+  }).sort((a, b) => {
+    if (a.status === 'pending' && b.status !== 'pending') return -1;
+    if (a.status !== 'pending' && b.status === 'pending') return 1;
+    // Fallback sort by name if both are the same status
+    const nameA = a.shopName || '';
+    const nameB = b.shopName || '';
+    return nameA.localeCompare(nameB);
   });
 
   const allPhoneNumbers = shopUsers
@@ -106,6 +130,8 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                 <TableHead>Shop Email</TableHead>
                 <TableHead>Phone Number</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -125,6 +151,56 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.phoneNumber || 'N/A'}</TableCell>
                   <TableCell>{user.location || 'N/A'}</TableCell>
+                  <TableCell>
+                    {user.status === 'pending' ? (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        Pending
+                      </span>
+                    ) : user.status === 'suspended' ? (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                        Suspended
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        Approved
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="flex gap-2">
+                    {user.status === 'pending' && (
+                      <Button 
+                        size="sm" 
+                        variant="default"
+                        onClick={() => handleStatusChange(user.id, 'approved')}
+                        disabled={approvingId === user.id}
+                      >
+                        {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                        Approve
+                      </Button>
+                    )}
+                    {user.status === 'approved' && (
+                       <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => handleStatusChange(user.id, 'suspended')}
+                        disabled={approvingId === user.id}
+                      >
+                        {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
+                        Stop
+                      </Button>
+                    )}
+                    {user.status === 'suspended' && (
+                       <Button 
+                        size="sm" 
+                        variant="secondary"
+                        onClick={() => handleStatusChange(user.id, 'approved')}
+                        disabled={approvingId === user.id}
+                      >
+                        {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+                        Resume
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

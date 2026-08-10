@@ -1,13 +1,13 @@
-'use client';
-
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { FirebaseProvider } from '@/firebase/provider';
-import { Toaster } from '@/components/ui/toaster';
-import { CartProvider } from '@/context/cart-context';
-import { VisitorTracker } from '@/components/visitor-tracker';
+import { Providers } from '@/components/providers';
 
 const inter = Inter({ subsets: ['latin'] });
+
+export const metadata = {
+  title: 'Pepsi App',
+  description: 'Pepsi App'
+};
 
 export default function RootLayout({
   children,
@@ -17,13 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <FirebaseProvider>
-          <CartProvider>
-            <VisitorTracker />
-            {children}
-            <Toaster />
-          </CartProvider>
-        </FirebaseProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
