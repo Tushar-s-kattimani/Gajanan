@@ -6,9 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, User as UserIcon, MessageSquare, Tag, CheckCircle, Ban, PlayCircle } from 'lucide-react';
+import { Loader2, User as UserIcon, MessageSquare, Tag, CheckCircle, Ban, PlayCircle, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -26,6 +26,27 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
       toast({ title: `Shop ${newStatus} successfully!` });
     } catch (e: any) {
       toast({ variant: 'destructive', title: `Error updating shop`, description: e.message });
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const password = window.prompt('Please enter the admin password to delete this shop:');
+    if (password !== '151571') {
+      if (password !== null) {
+        toast({ variant: 'destructive', title: 'Incorrect password', description: 'You cannot delete this shop.' });
+      }
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this shop?')) return;
+    setApprovingId(userId);
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      toast({ title: 'Shop deleted successfully!' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error deleting shop', description: e.message });
     } finally {
       setApprovingId(null);
     }
@@ -200,6 +221,15 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                         Resume
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteUser(user.id)}
+                      disabled={approvingId === user.id}
+                      title="Delete Shop"
+                    >
+                      {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

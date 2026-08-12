@@ -73,8 +73,13 @@ export function VisitorTracker() {
           userAgent: ua,
           type: isReopen ? 'App Reopened' : 'Page Load'
         });
-      } catch (error) {
-        console.error("Error logging visit:", error);
+      } catch (error: any) {
+        // Firebase occasionally retries network requests automatically if the connection is flaky.
+        // If it retries an addDoc that actually succeeded, it throws an ALREADY_EXISTS error.
+        // We can safely ignore this specific error.
+        if (error.code !== 'already-exists') {
+          console.error("Error logging visit:", error);
+        }
       }
     };
 

@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, User, Download, Calendar, Clock, Info, Filter, Phone, CreditCard } from 'lucide-react';
+import { Loader2, User, Download, Calendar, Clock, Info, Filter, Phone, CreditCard, Trash2 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
@@ -59,6 +59,107 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       toast({ title: 'Success', description: 'Order status updated.' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: `Failed to update status: ${error.message}` });
+    }
+  };
+
+  const handleBulkStatusChangeForDate = async (dateStr: string, newStatus: string) => {
+    const ordersForDate = filteredOrdersList.filter(order => {
+      if (!order.createdAt?.toDate) return false;
+      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
+    });
+    
+    if (ordersForDate.length === 0) return;
+    if (!window.confirm(`Are you sure you want to mark all ${ordersForDate.length} orders for this date as ${newStatus}?`)) return;
+
+    try {
+      const batch = writeBatch(db);
+      ordersForDate.forEach(order => {
+        batch.update(doc(db, 'orders', order.id), { status: newStatus });
+      });
+      await batch.commit();
+
+      setOrders(prevOrders => prevOrders.map(o => {
+        if (!o.createdAt?.toDate) return o;
+        const oDateStr = o.createdAt.toDate().toLocaleDateString('en-CA');
+        return oDateStr === dateStr ? { ...o, status: newStatus } : o;
+      }));
+
+      toast({ title: 'Success', description: `Updated ${ordersForDate.length} orders to ${newStatus}.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to bulk update status: ${error.message}` });
+    }
+  };
+
+  const handleDeleteSingleOrder = async (orderId: string) => {
+    const password = window.prompt('Please enter the admin password to delete this order:');
+    if (password !== '151571') {
+      if (password !== null) toast({ variant: 'destructive', title: 'Incorrect password', description: 'You cannot delete this order.' });
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this order? This cannot be undone.')) return;
+    try {
+      await deleteDoc(doc(db, 'orders', orderId));
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      toast({ title: 'Success', description: 'Order deleted successfully.' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to delete order: ${error.message}` });
+    }
+  };
+
+  const handleDeleteShopOrders = async (shopId: string, dateStr: string, ordersCount: number) => {
+    const password = window.prompt(`Please enter the admin password to delete all ${ordersCount} orders for this shop:`);
+    if (password !== '151571') {
+       if (password !== null) toast({ variant: 'destructive', title: 'Incorrect password', description: 'You cannot delete these orders.' });
+       return;
+    }
+    if (!window.confirm(`Are you sure you want to delete all ${ordersCount} orders? This cannot be undone.`)) return;
+    
+    const ordersToDelete = filteredOrdersList.filter(order => {
+      if (order.shopId !== shopId) return false;
+      if (!order.createdAt?.toDate) return false;
+      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
+    });
+
+    try {
+      const batch = writeBatch(db);
+      ordersToDelete.forEach(order => {
+        batch.delete(doc(db, 'orders', order.id));
+      });
+      await batch.commit();
+
+      const idsToDelete = new Set(ordersToDelete.map(o => o.id));
+      setOrders(prev => prev.filter(o => !idsToDelete.has(o.id)));
+      toast({ title: 'Success', description: `Deleted ${ordersToDelete.length} orders successfully.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to delete orders: ${error.message}` });
+    }
+  };
+
+  const handleDeleteDateOrders = async (dateStr: string, ordersCount: number) => {
+    const password = window.prompt(`Please enter the admin password to delete all ${ordersCount} orders for this date:`);
+    if (password !== '151571') {
+       if (password !== null) toast({ variant: 'destructive', title: 'Incorrect password', description: 'You cannot delete these orders.' });
+       return;
+    }
+    if (!window.confirm(`Are you sure you want to delete all ${ordersCount} orders for this date? This cannot be undone.`)) return;
+    
+    const ordersToDelete = filteredOrdersList.filter(order => {
+      if (!order.createdAt?.toDate) return false;
+      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
+    });
+
+    try {
+      const batch = writeBatch(db);
+      ordersToDelete.forEach(order => {
+        batch.delete(doc(db, 'orders', order.id));
+      });
+      await batch.commit();
+
+      const idsToDelete = new Set(ordersToDelete.map(o => o.id));
+      setOrders(prev => prev.filter(o => !idsToDelete.has(o.id)));
+      toast({ title: 'Success', description: `Deleted ${ordersToDelete.length} orders successfully.` });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to delete orders: ${error.message}` });
     }
   };
 
@@ -297,7 +398,28 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                             </span>
                           )}
                     </div>
-                    <span className="px-3 py-1 text-sm font-bold text-primary bg-primary/10 rounded-full hidden sm:inline-block">{totalOrders} orders</span>
+                    <div className="flex items-center gap-2">
+                        <div className="hidden sm:flex mr-2" onClick={(e) => e.stopPropagation()}>
+                            <select
+                                className="h-8 text-xs border border-input rounded-md px-2 bg-background hover:bg-accent hover:text-accent-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer"
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        handleBulkStatusChangeForDate(date, e.target.value);
+                                        e.target.value = '';
+                                    }
+                                }}
+                            >
+                                <option value="">Bulk Update All...</option>
+                                <option value="Pending">Mark All Pending</option>
+                                <option value="Confirmed">Mark All Confirmed</option>
+                                <option value="Delivered">Mark All Delivered</option>
+                            </select>
+                        </div>
+                        <Button variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 hidden sm:flex mr-2 no-print" onClick={(e) => { e.stopPropagation(); handleDeleteDateOrders(date, totalOrders); }}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <span className="px-3 py-1 text-sm font-bold text-primary bg-primary/10 rounded-full hidden sm:inline-block">{totalOrders} orders</span>
+                    </div>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
@@ -326,7 +448,12 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                           </div>
                                       </div>
                                   </div>
-                                  <div className="px-2 py-1 text-xs font-bold text-green-800 bg-green-100 rounded-full inline-block">{orders.length} order(s)</div>
+                                  <div className="flex items-center gap-2">
+                                      <div className="px-2 py-1 text-xs font-bold text-green-800 bg-green-100 rounded-full inline-block">{orders.length} order(s)</div>
+                                      <Button variant="outline" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 no-print" onClick={(e) => { e.stopPropagation(); handleDeleteShopOrders(shopInfo.id, date, orders.length); }}>
+                                          <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                  </div>
                               </div>
                           </AccordionTrigger>
                            {shopInfo.phoneNumber && (
@@ -405,6 +532,9 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                                 <SelectItem value="Delivered">Delivered</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                            <Button variant="outline" size="icon" className="h-9 w-9 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteSingleOrder(order.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

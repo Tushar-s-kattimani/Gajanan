@@ -113,7 +113,7 @@ const SortableItem = ({ product, handleOpenDialog, handleToggleAd }: { product: 
         </div>
         <div className="truncate">{product.size}</div>
         <div>{product.rate?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) ?? 'N/A'}</div>
-        <div>{product.stock}</div>
+        <div>{product.stock > 0 ? <span className="text-green-600 font-medium">In Stock</span> : <span className="text-red-600 font-medium">Out of Stock</span>}</div>
       </div>
       <div className="flex items-center gap-2 ml-2">
         <Button
@@ -250,9 +250,9 @@ export function ProductManagement() {
   const handleOpenDialog = (product: any | null = null) => {
     setEditingProduct(product);
     if (product) {
-      reset({ name: product.name, size: product.size, stock: product.stock, rate: product.rate, mrp: product.mrp || 0, position: product.position, imageUrl: product.imageUrl, category: product.category || '' });
+      reset({ name: product.name, size: product.size, stock: product.stock > 0 ? 999999 : 0, rate: product.rate, mrp: product.mrp || 0, position: product.position, imageUrl: product.imageUrl, category: product.category || '' });
     } else {
-      reset({ name: '', size: '', stock: 0, rate: 0, mrp: 0, position: products.length, imageUrl: '', category: '' });
+      reset({ name: '', size: '', stock: 999999, rate: 0, mrp: 0, position: products.length, imageUrl: '', category: '' });
     }
     setOpen(true);
   };
@@ -564,8 +564,15 @@ export function ProductManagement() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input id="stock" type="number" {...register('stock')} />
+                  <Label htmlFor="stock">Stock Availability</Label>
+                  <select
+                    id="stock"
+                    {...register('stock')}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="999999">Stock there</option>
+                    <option value="0">Not there</option>
+                  </select>
                   {errors.stock && <p className="text-sm text-red-500 mt-1">{errors.stock.message}</p>}
                 </div>
                 <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between pt-4 gap-2">
