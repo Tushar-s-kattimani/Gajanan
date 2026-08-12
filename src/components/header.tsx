@@ -2,15 +2,16 @@
 
 import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, LogOut, Menu, Loader2, Truck } from 'lucide-react';
+import { ShoppingCart, LogOut, Menu, Loader2, Truck, Search } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
+import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
 import { collection, serverTimestamp, doc, query, where, runTransaction, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useState } from 'react';
 
-export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
+export function Header({ onMenuClick, searchQuery, setSearchQuery }: { onMenuClick?: () => void, searchQuery?: string, setSearchQuery?: (q: string) => void }) {
   const { user, signOut, role } = useUser();
   const { cart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
@@ -147,7 +148,19 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 justify-end flex-1 ml-2 sm:ml-4">
+        {setSearchQuery && role === 'shop' && (
+          <div className="relative flex-1 max-w-[110px] sm:max-w-[250px] lg:max-w-md transition-all">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-full pl-7 sm:pl-9 h-8 sm:h-10 bg-gray-50 border-gray-200 focus-visible:ring-[#2874f0] rounded-full shadow-sm text-xs sm:text-sm"
+              value={searchQuery || ''}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        )}
         {role === 'shop' && (
           <Sheet>
             <SheetTrigger asChild>

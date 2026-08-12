@@ -50,12 +50,10 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
            const userDocRef = doc(db, 'users', user.uid);
            
            docUnsubscribe = onSnapshot(userDocRef, { includeMetadataChanges: true }, async (docSnapshot) => {
-              // Ignore locally cached data to prevent false-positive lockouts
-              if (docSnapshot.metadata.fromCache) return;
-
               if (docSnapshot.exists()) {
                  const data = docSnapshot.data();
                  if (data.status === 'pending') {
+                    if (docSnapshot.metadata.fromCache) return;
                     if (docUnsubscribe) docUnsubscribe();
                     setUser(null);
                     setRole(null);
@@ -66,6 +64,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
                       description: 'Your account is pending admin approval. You will be able to log in once an admin approves your request.'
                     });
                  } else if (data.status === 'suspended') {
+                    if (docSnapshot.metadata.fromCache) return;
                     if (docUnsubscribe) docUnsubscribe();
                     setUser(null);
                     setRole(null);

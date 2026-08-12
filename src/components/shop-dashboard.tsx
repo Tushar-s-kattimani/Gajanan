@@ -14,6 +14,7 @@ import { MobileSidebar } from './mobile-sidebar';
 export function ShopDashboard() {
   const [activeSection, setActiveSection] = useState('new_order');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user } = useUser();
 
   const userOrdersQuery = useMemo(() => {
@@ -30,13 +31,13 @@ export function ShopDashboard() {
   const renderContent = () => {
     switch (activeSection) {
       case 'new_order':
-        return <NewOrder products={products} loading={productsLoading} />;
+        return <NewOrder products={products} loading={productsLoading} searchQuery={searchQuery} />;
       case 'order_history':
         return <OrderHistory orders={orders} loading={ordersLoading} />;
       case 'profile':
         return <ShopProfile />;
       default:
-        return <NewOrder products={products} loading={productsLoading} />;
+        return <NewOrder products={products} loading={productsLoading} searchQuery={searchQuery} />;
     }
   };
 
@@ -51,7 +52,7 @@ export function ShopDashboard() {
         setIsOpen={setMobileMenuOpen}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header onMenuClick={() => setMobileMenuOpen(true)} />
+        <Header onMenuClick={() => setMobileMenuOpen(true)} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10">
           {renderContent()}
         </main>

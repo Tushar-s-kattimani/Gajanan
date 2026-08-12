@@ -43,7 +43,7 @@ const calculateDiscount = (mrp: number, rate: number) => {
   return Math.round(((mrp - rate) / mrp) * 100);
 };
 
-export function NewOrder({ products: initialProducts = [], loading }: { products: any[], loading: boolean }) {
+export function NewOrder({ products: initialProducts = [], loading, searchQuery = '' }: { products: any[], loading: boolean, searchQuery?: string }) {
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
@@ -101,11 +101,16 @@ export function NewOrder({ products: initialProducts = [], loading }: { products
   };
   
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === 'All') {
-      return products;
+    let filtered = products;
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(p => p.category === selectedCategory);
     }
-    return products.filter(p => p.category === selectedCategory);
-  }, [products, selectedCategory]);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.size.toLowerCase().includes(q));
+    }
+    return filtered;
+  }, [products, selectedCategory, searchQuery]);
   
   const handleAddToCart = (product: any) => {
     const quantityToAdd = quantities[product.id] || 1;
