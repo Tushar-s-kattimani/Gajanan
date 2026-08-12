@@ -168,15 +168,22 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                 {cartItems.length > 0 ? (
                   <div className="space-y-4">
                     {cartItems.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                        <div>
-                          <p className="font-semibold">{item.name} ({item.size})</p>
-                           <p className="text-sm text-gray-500">{item.quantity} units &times; {item.rate.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                      <div key={item.id} className="flex items-center justify-between rounded-lg bg-gray-50 p-3 mb-2 shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {item.imageUrl && (
+                            <div className="w-12 h-12 bg-white rounded-md flex items-center justify-center border border-gray-200 overflow-hidden flex-shrink-0">
+                               <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain p-1" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-semibold text-gray-900 line-clamp-1">{item.name} ({item.size})</p>
+                             <p className="text-sm text-gray-500 font-medium">{item.quantity} units &times; {item.rate.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button size="icon" variant="ghost" onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</Button>
-                          <span>{item.quantity}</span>
-                          <Button size="icon" variant="ghost" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</Button>
+                        <div className="flex items-center gap-1 bg-white rounded-md border border-gray-200 p-0.5 shadow-sm">
+                          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-sm text-gray-500 hover:text-gray-900" onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</Button>
+                          <span className="w-5 text-center text-sm font-bold text-gray-900">{item.quantity}</span>
+                          <Button size="icon" variant="ghost" className="h-6 w-6 rounded-sm text-gray-500 hover:text-gray-900" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</Button>
                         </div>
                       </div>
                     ))}
@@ -187,17 +194,17 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
               </div>
               {cartItems.length > 0 && (
                 <SheetFooter className="mt-auto border-t pt-4">
-                  <div className="w-full space-y-3">
-                     <div className="flex justify-between text-xl font-bold mb-2">
+                  <div className="w-full space-y-4">
+                     <div className="flex justify-between items-center text-xl font-black text-gray-900 bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm">
                       <span>Total Amount</span>
-                      <span>{cartTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                      <span className="text-blue-700">{cartTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                     </div>
                     <div className="space-y-3">
-                      <Button className="w-full h-12 text-base" onClick={() => placeOrder()} disabled={isPlacingOrder}>
-                          {isPlacingOrder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
+                      <Button className="w-full h-14 text-lg font-bold bg-[#fb641b] hover:bg-[#e05615] text-white shadow-lg transition-all rounded-xl border border-[#fb641b]" onClick={() => placeOrder()} disabled={isPlacingOrder}>
+                          {isPlacingOrder ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Truck className="mr-2 h-5 w-5" />}
                           Place Order (Cash on Delivery)
                       </Button>
-                      <Button variant="outline" className="w-full" onClick={clearCart}>Clear Cart</Button>
+                      <Button variant="ghost" className="w-full h-10 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" onClick={clearCart}>Clear Cart</Button>
                     </div>
                   </div>
                 </SheetFooter>

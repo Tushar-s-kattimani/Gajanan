@@ -10,6 +10,7 @@ interface Product {
   size: string;
   stock: number;
   rate: number;
+  imageUrl?: string;
 }
 
 interface CartItem extends Product {
