@@ -164,10 +164,10 @@ export function Header({ onMenuClick, searchQuery, setSearchQuery }: { onMenuCli
         {role === 'shop' && (
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="relative flex-shrink-0 h-12 w-12">
-                <ShoppingCart className="h-6 w-6" />
+              <Button variant="outline" className="relative flex-shrink-0 h-12 w-12 sm:h-14 sm:w-14 bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md hover:shadow-lg transition-all rounded-xl hover:scale-105">
+                <ShoppingCart className="h-6 w-6 sm:h-7 sm:w-7" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shadow-md">
+                  <span className="absolute -top-2 -right-2 flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-[#fb641b] text-[10px] sm:text-xs font-bold text-white shadow-sm border-2 border-white">
                     {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 )}
