@@ -79,21 +79,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
                     setRole(data.role || 'shop');
                  }
               } else {
-                 // New shop user signup
-                 const newRole = 'shop';
-                 const userData: any = {
-                  uid: user.uid,
-                  email: user.email,
-                  role: newRole,
-                  status: 'pending', // IMPORTANT: New shops are pending
-                  createdAt: serverTimestamp(),
-                  profileName: '',
-                  phoneNumber: '',
-                  shopName: '',
-                  location: '',
-                  imageUrl: ''
-                };
-                await setDoc(userDocRef, userData);
+                 // Document is being created by signUp, just wait.
               }
               setLoading(false);
            });
@@ -114,6 +100,25 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, pass: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    
+    if (assignUserRole(userCredential.user.email || '') !== 'admin') {
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      const userData: any = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        role: 'shop',
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        profileName: '',
+        phoneNumber: '',
+        shopName: '',
+        location: '',
+        imageUrl: ''
+      };
+      await setDoc(userDocRef, userData);
+      await firebaseSignOut(auth);
+    }
+    
     return userCredential;
   };
 
