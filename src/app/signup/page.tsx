@@ -16,7 +16,6 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showApprovalMessage, setShowApprovalMessage] = useState(false);
   const [emailInUse, setEmailInUse] = useState(false);
 
   const { signUp, sendPasswordReset } = useUser();
@@ -39,10 +38,10 @@ export default function SignUpPage() {
     setLoading(true);
     setError('');
     setEmailInUse(false);
-    setShowApprovalMessage(false);
+    setEmailInUse(false);
     try {
       await signUp(email, password);
-      setShowApprovalMessage(true);
+      router.push('/');
     } catch (e: any) {
       let friendlyMessage = 'An unexpected error occurred during sign up.';
       if (e.code === 'auth/email-already-in-use') {
@@ -93,20 +92,6 @@ export default function SignUpPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-8 px-8">
-           {showApprovalMessage ? (
-                <div className="space-y-6 text-center">
-                    <div className="flex justify-center">
-                         <UserPlus className="h-12 w-12 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Account Pending Approval</h3>
-                    <p className="text-muted-foreground">
-                        Your account has been created successfully! However, it must be approved by an administrator before you can log in. We will notify you once you have been granted access.
-                    </p>
-                    <Button asChild className="w-full py-6 text-lg">
-                        <Link href="/login">Back to Sign In</Link>
-                    </Button>
-                </div>
-           ) : (
                 <div className="space-y-6 pt-6">
                     <div className="space-y-4">
                         <Input
@@ -157,7 +142,6 @@ export default function SignUpPage() {
                         </p>
                     </div>
                 </div>
-           )}
         </CardContent>
       </Card>
     </div>

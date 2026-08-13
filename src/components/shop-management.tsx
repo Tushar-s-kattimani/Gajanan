@@ -19,7 +19,18 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleStatusChange = async (userId: string, newStatus: 'approved' | 'suspended') => {
+  const handleStatusChange = async (userId: string, newStatus: 'approved' | 'suspended', currentStatus: string) => {
+    if (newStatus === 'suspended' || currentStatus === 'suspended') {
+      const actionName = newStatus === 'suspended' ? 'stop' : 'resume';
+      const password = window.prompt(`Please enter the admin password to ${actionName} this shop:`);
+      if (password !== '7204344330') {
+        if (password !== null) {
+          toast({ variant: 'destructive', title: 'Incorrect password', description: 'Action denied.' });
+        }
+        return;
+      }
+    }
+
     setApprovingId(userId);
     try {
       await updateDoc(doc(db, 'users', userId), { status: newStatus });
@@ -192,7 +203,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                       <Button 
                         size="sm" 
                         variant="default"
-                        onClick={() => handleStatusChange(user.id, 'approved')}
+                        onClick={() => handleStatusChange(user.id, 'approved', user.status)}
                         disabled={approvingId === user.id}
                       >
                         {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
@@ -203,7 +214,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                        <Button 
                         size="sm" 
                         variant="destructive"
-                        onClick={() => handleStatusChange(user.id, 'suspended')}
+                        onClick={() => handleStatusChange(user.id, 'suspended', user.status)}
                         disabled={approvingId === user.id}
                       >
                         {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
@@ -214,7 +225,7 @@ export function ShopManagement({ users = [], loading }: { users: any[], loading:
                        <Button 
                         size="sm" 
                         variant="secondary"
-                        onClick={() => handleStatusChange(user.id, 'approved')}
+                        onClick={() => handleStatusChange(user.id, 'approved', user.status)}
                         disabled={approvingId === user.id}
                       >
                         {approvingId === user.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}

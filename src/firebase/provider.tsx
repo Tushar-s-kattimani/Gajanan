@@ -13,6 +13,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let docUnsubscribe: (() => void) | null = null;
@@ -44,6 +45,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
             };
             await setDoc(userDocRef, userData);
             setRole('admin');
+            setStatus('approved');
           }
         } else {
            // Handle shop users
@@ -53,21 +55,15 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
               if (docSnapshot.exists()) {
                  const data = docSnapshot.data();
                  if (data.status === 'pending') {
-                    if (docSnapshot.metadata.fromCache) return;
-                    if (docUnsubscribe) docUnsubscribe();
-                    setUser(null);
-                    setRole(null);
-                    await firebaseSignOut(auth);
-                    toast({
-                      variant: 'destructive',
-                      title: 'Approval Pending',
-                      description: 'Your account is pending admin approval. You will be able to log in once an admin approves your request.'
-                    });
+                    setUser(user);
+                    setRole('shop');
+                    setStatus('pending');
                  } else if (data.status === 'suspended') {
                     if (docSnapshot.metadata.fromCache) return;
                     if (docUnsubscribe) docUnsubscribe();
                     setUser(null);
                     setRole(null);
+                    setStatus(null);
                     await firebaseSignOut(auth);
                     toast({
                       variant: 'destructive',
@@ -77,6 +73,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
                  } else {
                     setUser(user);
                     setRole(data.role || 'shop');
+                    setStatus(data.status || 'approved');
                  }
               } else {
                  // Document is being created by signUp, just wait.
@@ -89,6 +86,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       } else {
         setUser(null);
         setRole(null);
+        setStatus(null);
       }
       setLoading(false);
     });
@@ -116,7 +114,6 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
         imageUrl: ''
       };
       await setDoc(userDocRef, userData);
-      await firebaseSignOut(auth);
     }
     
     return userCredential;
@@ -138,7 +135,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
 
   return (
-    <AuthContext.Provider value={{ user, loading, role, signUp, signIn, signOut, sendPasswordReset, sendVerificationEmail }}>
+    <AuthContext.Provider value={{ user, loading, role, status, signUp, signIn, signOut, sendPasswordReset, sendVerificationEmail }}>
       {children}
       <FirebaseErrorListener />
     </AuthContext.Provider>

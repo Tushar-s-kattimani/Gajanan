@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   role: string | null;
+  status: string | null;
   signUp: (email: string, pass: string) => Promise<UserCredential>;
   signIn: (email: string, pass: string) => Promise<UserCredential>;
   signOut: () => Promise<void>;
