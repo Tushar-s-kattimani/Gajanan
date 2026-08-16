@@ -43,6 +43,30 @@ const calculateDiscount = (mrp: number, rate: number) => {
   return Math.round(((mrp - rate) / mrp) * 100);
 };
 
+const CountdownTimer = ({ expiry }: { expiry: number }) => {
+  const [timeLeft, setTimeLeft] = useState(Math.max(0, expiry - Date.now()));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft(Math.max(0, expiry - Date.now()));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [expiry]);
+
+  if (timeLeft <= 0) return null;
+
+  const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+  const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+  return (
+    <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-sm shadow-sm animate-pulse w-fit mt-1">
+      <span>⏳</span>
+      <span>{hours}h {minutes}m {seconds}s left</span>
+    </div>
+  );
+};
+
 export function NewOrder({ products: initialProducts = [], loading, searchQuery = '' }: { products: any[], loading: boolean, searchQuery?: string }) {
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
@@ -52,6 +76,12 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
   
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 10000);
+    return () => clearInterval(interval);
+  }, []);
   
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'categories'), (docSnap) => {
@@ -91,8 +121,14 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
   }, [initialProducts]);
 
   const handleQuantityChange = (productId: string, value: string | number) => {
-    const newQuantity = Math.max(1, Number(value));
-    setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
+    if (value === '') {
+      setQuantities(prev => ({ ...prev, [productId]: '' as any }));
+      return;
+    }
+    const newQuantity = Number(value);
+    if (!isNaN(newQuantity) && newQuantity >= 0) {
+      setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
+    }
   };
   
   const handleClearCart = () => {
@@ -123,7 +159,12 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
         return;
     }
     
-    addToCart(product, quantityToAdd);
+    let activeRate = product.rate;
+    if (product.offerExpiry && product.offerRate && product.offerExpiry > Date.now()) {
+        activeRate = product.offerRate;
+    }
+    
+    addToCart({ ...product, rate: activeRate }, quantityToAdd);
     // Reset quantity to 1 after adding
     setQuantities(prev => ({ ...prev, [product.id]: 1 }));
   };
@@ -145,6 +186,8 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
                     (() => {
                       const adProduct = products.find(p => p.id === adSettings.productId);
                       if (!adProduct) return null;
+                      const hasActiveAdOffer = adProduct.offerExpiry && adProduct.offerRate && adProduct.offerExpiry > Date.now();
+                      const displayAdRate = hasActiveAdOffer ? adProduct.offerRate : adProduct.rate;
                       return (
                         <div className="w-full relative rounded-none sm:rounded-md overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-4 sm:p-6 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">
                           <div className="flex-1">
@@ -155,13 +198,23 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
                                 {adProduct.size}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 mb-4">
-                              <span className="text-xl sm:text-3xl font-black text-[#2874f0]">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
-                              {adProduct.mrp > adProduct.rate && (
-                                <>
-                                  <span className="text-sm sm:text-base text-gray-500 line-through">₹{Number(adProduct.mrp).toLocaleString('en-IN')}</span>
-                                  <span className="text-sm sm:text-base font-bold text-[#388e3c]">{calculateDiscount(adProduct.mrp, adProduct.rate)}% off</span>
-                                </>
+                            <div className="flex flex-col gap-1 mb-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl sm:text-3xl font-black text-[#2874f0]">₹{Number(displayAdRate).toLocaleString('en-IN')}</span>
+                                {hasActiveAdOffer && (
+                                  <span className="text-sm sm:text-base text-gray-400 line-through">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
+                                )}
+                                {adProduct.mrp > displayAdRate && (
+                                  <>
+                                    {!hasActiveAdOffer && (
+                                      <span className="text-sm sm:text-base text-gray-500 line-through">₹{Number(adProduct.mrp).toLocaleString('en-IN')}</span>
+                                    )}
+                                    <span className="text-sm sm:text-base font-bold text-[#388e3c]">{calculateDiscount(adProduct.mrp, displayAdRate)}% off</span>
+                                  </>
+                                )}
+                              </div>
+                              {hasActiveAdOffer && (
+                                <CountdownTimer expiry={adProduct.offerExpiry} />
                               )}
                             </div>
                           </div>
@@ -235,6 +288,9 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-1 sm:gap-4 bg-gray-100 p-1 sm:bg-transparent sm:p-0">
                 {filteredProducts.map((product) => {
+                   const hasActiveOffer = product.offerExpiry && product.offerRate && product.offerExpiry > Date.now();
+                   const displayRate = hasActiveOffer ? product.offerRate : product.rate;
+                   const currentQty = product.id in quantities ? quantities[product.id] : 1;
                    return (
                     <Card key={product.id} className={`flex flex-col bg-white overflow-hidden transition-shadow duration-300 border border-gray-200/60 sm:border-gray-200 rounded-none sm:rounded-sm ${
                         product.isAd
@@ -270,22 +326,32 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
                               {product.size}
                             </span>
                           </div>
-                          {product.rate != null && (
+                          {displayRate != null && (
                             <div className="mt-2 flex items-center flex-wrap gap-1.5">
                               <span className="font-bold text-base sm:text-lg text-gray-900">
-                                ₹{Number(product.rate).toLocaleString('en-IN')}
+                                ₹{Number(displayRate).toLocaleString('en-IN')}
                               </span>
-                              {product.mrp > product.rate && (
+                              {hasActiveOffer && (
+                                <span className="text-xs text-gray-400 line-through">
+                                  ₹{Number(product.rate).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                              {product.mrp > displayRate && (
                                 <>
-                                  <span className="text-xs text-gray-500 line-through">
-                                    ₹{Number(product.mrp).toLocaleString('en-IN')}
-                                  </span>
+                                  {!hasActiveOffer && (
+                                    <span className="text-xs text-gray-500 line-through">
+                                      ₹{Number(product.mrp).toLocaleString('en-IN')}
+                                    </span>
+                                  )}
                                   <span className="text-xs font-bold text-[#388e3c]">
-                                    {calculateDiscount(product.mrp, product.rate)}% off
+                                    {calculateDiscount(product.mrp, displayRate)}% off
                                   </span>
                                 </>
                               )}
                             </div>
+                          )}
+                          {hasActiveOffer && (
+                             <CountdownTimer expiry={product.offerExpiry} />
                           )}
                           <div className="flex-grow"></div>
                           <div className="mt-2 sm:mt-3 flex items-center justify-between">
@@ -304,17 +370,17 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
                         {product.stock > 0 ? (
                             <div className="flex flex-col gap-2 w-full mt-2">
                               <div className="flex w-full items-center justify-center gap-2 mb-1">
-                                <Button variant="outline" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-gray-300 text-gray-700 bg-gray-50 shrink-0" onClick={() => handleQuantityChange(product.id, (quantities[product.id] || 1) - 1)}>
+                                <Button variant="outline" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-gray-300 text-gray-700 bg-gray-50 shrink-0" onClick={() => handleQuantityChange(product.id, Math.max(1, (Number(currentQty) || 1) - 1))}>
                                   <Minus className="h-3 w-3" />
                                 </Button>
                                 <Input
                                   type="number"
                                   min="1"
-                                  value={quantities[product.id] || 1}
+                                  value={currentQty}
                                   onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                                  className="w-10 sm:w-12 h-6 sm:h-7 text-center font-medium text-sm border border-gray-200 px-1 rounded-sm"
+                                  className="w-14 sm:w-16 h-6 sm:h-7 text-center font-medium text-sm border border-gray-200 px-1 rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
-                                <Button variant="outline" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-gray-300 text-gray-700 bg-gray-50 shrink-0" onClick={() => handleQuantityChange(product.id, (quantities[product.id] || 1) + 1)}>
+                                <Button variant="outline" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-gray-300 text-gray-700 bg-gray-50 shrink-0" onClick={() => handleQuantityChange(product.id, (Number(currentQty) || 1) + 1)}>
                                   <Plus className="h-3 w-3" />
                                 </Button>
                               </div>

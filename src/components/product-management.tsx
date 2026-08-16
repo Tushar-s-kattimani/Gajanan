@@ -66,6 +66,8 @@ const productSchema = z.object({
   position: z.coerce.number(),
   imageUrl: z.string().optional(),
   category: z.string().optional(),
+  offerRate: z.coerce.number().optional(),
+  offerDuration: z.coerce.number().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -112,7 +114,16 @@ const SortableItem = ({ product, handleOpenDialog, handleToggleAd }: { product: 
           )}
         </div>
         <div className="truncate">{product.size}</div>
-        <div>{product.rate?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) ?? 'N/A'}</div>
+        <div className="flex flex-col">
+          <div className={product.offerExpiry && product.offerExpiry > Date.now() ? "line-through text-gray-400 text-xs" : ""}>
+            {product.rate?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) ?? 'N/A'}
+          </div>
+          {product.offerExpiry && product.offerExpiry > Date.now() && (
+            <div className="text-red-600 font-bold">
+              {product.offerRate?.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+            </div>
+          )}
+        </div>
         <div>{product.stock > 0 ? <span className="text-green-600 font-medium">In Stock</span> : <span className="text-red-600 font-medium">Out of Stock</span>}</div>
       </div>
       <div className="flex items-center gap-2 ml-2">
@@ -250,9 +261,9 @@ export function ProductManagement() {
   const handleOpenDialog = (product: any | null = null) => {
     setEditingProduct(product);
     if (product) {
-      reset({ name: product.name, size: product.size, stock: product.stock > 0 ? 999999 : 0, rate: product.rate, mrp: product.mrp || 0, position: product.position, imageUrl: product.imageUrl, category: product.category || '' });
+      reset({ name: product.name, size: product.size, stock: product.stock > 0 ? 999999 : 0, rate: product.rate, mrp: product.mrp || 0, position: product.position, imageUrl: product.imageUrl, category: product.category || '', offerRate: product.offerRate || 0, offerDuration: product.offerDuration || 0 });
     } else {
-      reset({ name: '', size: '', stock: 999999, rate: 0, mrp: 0, position: products.length, imageUrl: '', category: '' });
+      reset({ name: '', size: '', stock: 999999, rate: 0, mrp: 0, position: products.length, imageUrl: '', category: '', offerRate: 0, offerDuration: 0 });
     }
     setOpen(true);
   };
@@ -284,7 +295,16 @@ export function ProductManagement() {
         finalImageUrl = '';
       }
       
-      const productData = { ...data, imageUrl: finalImageUrl };
+      const productData: any = { ...data, imageUrl: finalImageUrl };
+
+      if (data.offerRate && data.offerRate > 0 && data.offerDuration && data.offerDuration > 0) {
+        const isSameOffer = editingProduct && editingProduct.offerRate === data.offerRate && editingProduct.offerDuration === data.offerDuration;
+        productData.offerExpiry = isSameOffer ? editingProduct.offerExpiry : Date.now() + (data.offerDuration * 3600000);
+      } else {
+        productData.offerRate = null;
+        productData.offerDuration = null;
+        productData.offerExpiry = null;
+      }
 
       if (editingProduct) {
         const productRef = doc(db, 'products', editingProduct.id);
@@ -311,7 +331,7 @@ export function ProductManagement() {
     if (window.confirm('Are you sure you want to delete this product?')) {
         try {
             await deleteDoc(doc(db, 'products', productId));
-            if (imageUrl && !imageUrl.includes('picsum.photos')) {
+            if (imageUrl && imageUrl.includes('firebasestorage.googleapis.com')) {
               const imageRef = ref(storage, imageUrl);
               await deleteObject(imageRef).catch(err => console.warn("Could not delete old image, may not exist.", err));
             }
@@ -561,6 +581,28 @@ export function ProductManagement() {
                     <Label htmlFor="rate">Selling Price (Rate)</Label>
                     <Input id="rate" type="number" step="0.01" {...register('rate')} />
                     {errors.rate && <p className="text-sm text-red-500 mt-1">{errors.rate.message}</p>}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="offerRate">Flash Offer Rate</Label>
+                    <Input id="offerRate" type="number" step="0.01" {...register('offerRate')} placeholder="Leave 0 for no offer" />
+                  </div>
+                  <div>
+                    <Label htmlFor="offerDuration">Offer Duration (Hours)</Label>
+                    <select
+                      id="offerDuration"
+                      {...register('offerDuration')}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="0">None</option>
+                      <option value="1">1 Hour</option>
+                      <option value="2">2 Hours</option>
+                      <option value="6">6 Hours</option>
+                      <option value="12">12 Hours</option>
+                      <option value="24">24 Hours</option>
+                      <option value="48">48 Hours</option>
+                    </select>
                   </div>
                 </div>
                 <div>

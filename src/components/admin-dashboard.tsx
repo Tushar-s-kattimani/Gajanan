@@ -34,7 +34,7 @@ export function AdminDashboard() {
       case 'orders':
         return <AllOrders orders={orders || []} users={users || []} loading={ordersLoading || usersLoading} />;
        case 'shops':
-        return <ShopManagement users={users || []} loading={usersLoading} />;
+        return <ShopManagement users={users || []} products={products || []} loading={usersLoading} />;
       case 'shop-revenue':
         return <ShopRevenue orders={orders || []} users={users || []} loading={ordersLoading || usersLoading} />;
       case 'visitor-analytics':

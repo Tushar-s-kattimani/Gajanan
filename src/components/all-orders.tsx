@@ -415,8 +415,10 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                 <option value="Delivered">Mark All Delivered</option>
                             </select>
                         </div>
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 hidden sm:flex mr-2 no-print" onClick={(e) => { e.stopPropagation(); handleDeleteDateOrders(date, totalOrders); }}>
-                            <Trash2 className="h-4 w-4" />
+                        <Button asChild variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 hidden sm:flex mr-2 no-print cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDateOrders(date, totalOrders); }}>
+                            <div role="button">
+                                <Trash2 className="h-4 w-4" />
+                            </div>
                         </Button>
                         <span className="px-3 py-1 text-sm font-bold text-primary bg-primary/10 rounded-full hidden sm:inline-block">{totalOrders} orders</span>
                     </div>
@@ -450,8 +452,10 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                   </div>
                                   <div className="flex items-center gap-2">
                                       <div className="px-2 py-1 text-xs font-bold text-green-800 bg-green-100 rounded-full inline-block">{orders.length} order(s)</div>
-                                      <Button variant="outline" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 no-print" onClick={(e) => { e.stopPropagation(); handleDeleteShopOrders(shopInfo.id, date, orders.length); }}>
-                                          <Trash2 className="h-4 w-4" />
+                                      <Button asChild variant="outline" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 no-print cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteShopOrders(shopInfo.id, date, orders.length); }}>
+                                          <div role="button">
+                                              <Trash2 className="h-4 w-4" />
+                                          </div>
                                       </Button>
                                   </div>
                               </div>
