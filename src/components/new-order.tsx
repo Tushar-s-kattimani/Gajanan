@@ -190,16 +190,16 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
                       const displayAdRate = hasActiveAdOffer ? adProduct.offerRate : adProduct.rate;
                       return (
                         <div className="w-full relative rounded-none sm:rounded-md overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 p-4 sm:p-6 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <span className="inline-block bg-[#2874f0] text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-sm uppercase mb-2">Promoted</span>
-                            <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1">{adProduct.name}</h3>
+                            <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1 truncate">{adProduct.name}</h3>
                             <div className="mb-3">
                               <span className="inline-block border border-blue-300 bg-white px-3 py-1 rounded-sm text-sm font-bold text-blue-700 shadow-sm">
                                 {adProduct.size}
                               </span>
                             </div>
                             <div className="flex flex-col gap-1 mb-4">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xl sm:text-3xl font-black text-[#2874f0]">₹{Number(displayAdRate).toLocaleString('en-IN')}</span>
                                 {hasActiveAdOffer && (
                                   <span className="text-sm sm:text-base text-gray-400 line-through">₹{Number(adProduct.rate).toLocaleString('en-IN')}</span>
@@ -220,7 +220,7 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
                           </div>
                           {adProduct.imageUrl && (
                             <div className="w-24 h-24 sm:w-40 sm:h-40 flex-shrink-0 ml-4 bg-white rounded-full p-1 sm:p-2 border border-blue-200 shadow-sm overflow-visible">
-                              <img src={getCleanImageUrl(adProduct.imageUrl)} alt={adProduct.name} className="w-full h-full object-cover rounded-full animate-item-float" />
+                              <img src={getCleanImageUrl(adProduct.imageUrl)} alt={adProduct.name} className="w-full h-full object-contain rounded-full animate-item-float" />
                             </div>
                           )}
                         </div>
