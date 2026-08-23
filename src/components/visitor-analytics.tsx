@@ -24,10 +24,19 @@ export function VisitorAnalytics() {
   );
 
   useEffect(() => {
+    if (!selectedDate) {
+      setVisitors([]);
+      return;
+    }
+
     setLoading(true);
     
     // Calculate start and end of the selected date
     const start = new Date(selectedDate);
+    if (isNaN(start.getTime())) {
+      setLoading(false);
+      return;
+    }
     start.setHours(0, 0, 0, 0);
     const end = new Date(selectedDate);
     end.setHours(23, 59, 59, 999);
