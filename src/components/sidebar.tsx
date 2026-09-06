@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { BarChart, Package, Users, ShoppingCart, History, Home, User, Banknote, Calendar, ClipboardList, Settings, LogOut, BarChart3 } from 'lucide-react';
+import { BarChart, Package, Users, ShoppingCart, History, Home, User, Banknote, Calendar, ClipboardList, Settings, LogOut, BarChart3, LineChart } from 'lucide-react';
 import { PepsiBottleLogo } from './pepsi-logo';
 import { useUser } from '@/firebase';
 
@@ -19,6 +19,7 @@ const navItems = {
     { id: 'delivered-orders', name: 'Delivered Orders', icon: ClipboardList },
     { id: 'shops', name: 'Shops', icon: Users },
     { id: 'shop-revenue', name: 'Shop Revenue', icon: Banknote },
+    { id: 'shop-insights', name: 'Shop Insights', icon: LineChart },
     { id: 'visitor-analytics', name: 'Visitor Analytics', icon: BarChart3 },
     { id: 'settings', name: 'Settings', icon: Settings },
   ],
