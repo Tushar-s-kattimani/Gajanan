@@ -7,6 +7,7 @@ import { Header } from '@/components/header';
 import { AdminOverview } from '@/components/admin-overview';
 import { ProductManagement } from '@/components/product-management';
 import { AllOrders } from '@/components/all-orders';
+import { DeliveredOrders } from '@/components/delivered-orders';
 import { ShopManagement } from '@/components/shop-management';
 import { ShopRevenue } from '@/components/shop-revenue';
 import { VisitorAnalytics } from '@/components/visitor-analytics';
@@ -33,6 +34,8 @@ export function AdminDashboard() {
         return <ProductManagement />;
       case 'orders':
         return <AllOrders orders={orders || []} users={users || []} loading={ordersLoading || usersLoading} />;
+      case 'delivered-orders':
+        return <DeliveredOrders orders={orders || []} users={users || []} loading={ordersLoading || usersLoading} />;
        case 'shops':
         return <ShopManagement users={users || []} products={products || []} loading={usersLoading} />;
       case 'shop-revenue':

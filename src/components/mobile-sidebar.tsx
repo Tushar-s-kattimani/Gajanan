@@ -21,6 +21,7 @@ const navItems = {
     { id: 'dashboard', name: 'Dashboard', icon: BarChart },
     { id: 'products', name: 'Products', icon: Package },
     { id: 'orders', name: 'All Orders', icon: ShoppingCart },
+    { id: 'delivered-orders', name: 'Delivered Orders', icon: ClipboardList },
     { id: 'shops', name: 'Shops', icon: Users },
     { id: 'shop-revenue', name: 'Shop Revenue', icon: Banknote },
     { id: 'visitor-analytics', name: 'Visitor Analytics', icon: BarChart3 },

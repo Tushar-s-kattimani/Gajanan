@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, User, Download, Calendar, Clock, Info, Filter, Phone, CreditCard, Trash2, MessageSquare } from 'lucide-react';
+import { Loader2, User, Download, Calendar, Clock, Info, Filter, Phone, CreditCard, Trash2, CheckCircle2 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
@@ -25,10 +25,9 @@ const paymentStatusColors: { [key: string]: string } = {
   Paid: 'text-green-600',
 };
 
-export function AllOrders({ orders: initialOrders = [], users = [], loading }: { orders: any[], users: any[], loading: boolean }) {
+export function DeliveredOrders({ orders: initialOrders = [], users = [], loading }: { orders: any[], users: any[], loading: boolean }) {
   const { toast } = useToast();
   const [orders, setOrders] = useState(initialOrders);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Pending'>('Pending');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
 
@@ -62,34 +61,6 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     }
   };
 
-  const handleBulkStatusChangeForDate = async (dateStr: string, newStatus: string) => {
-    const ordersForDate = filteredOrdersList.filter(order => {
-      if (!order.createdAt?.toDate) return false;
-      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
-    });
-    
-    if (ordersForDate.length === 0) return;
-    if (!window.confirm(`Are you sure you want to mark all ${ordersForDate.length} orders for this date as ${newStatus}?`)) return;
-
-    try {
-      const batch = writeBatch(db);
-      ordersForDate.forEach(order => {
-        batch.update(doc(db, 'orders', order.id), { status: newStatus });
-      });
-      await batch.commit();
-
-      setOrders(prevOrders => prevOrders.map(o => {
-        if (!o.createdAt?.toDate) return o;
-        const oDateStr = o.createdAt.toDate().toLocaleDateString('en-CA');
-        return oDateStr === dateStr ? { ...o, status: newStatus } : o;
-      }));
-
-      toast({ title: 'Success', description: `Updated ${ordersForDate.length} orders to ${newStatus}.` });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: `Failed to bulk update status: ${error.message}` });
-    }
-  };
-
   const handleDeleteSingleOrder = async (orderId: string) => {
     const password = window.prompt('Please enter the admin password to delete this order:');
     if (password !== '151571') {
@@ -106,129 +77,15 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     }
   };
 
-  const handleDeleteShopOrders = async (shopId: string, dateStr: string, ordersCount: number) => {
-    const password = window.prompt(`Please enter the admin password to delete all ${ordersCount} orders for this shop:`);
-    if (password !== '151571') {
-       if (password !== null) toast({ variant: 'destructive', title: 'Incorrect password', description: 'You cannot delete these orders.' });
-       return;
-    }
-    if (!window.confirm(`Are you sure you want to delete all ${ordersCount} orders? This cannot be undone.`)) return;
-    
-    const ordersToDelete = filteredOrdersList.filter(order => {
-      if (order.shopId !== shopId) return false;
-      if (!order.createdAt?.toDate) return false;
-      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
-    });
-
-    try {
-      const batch = writeBatch(db);
-      ordersToDelete.forEach(order => {
-        batch.delete(doc(db, 'orders', order.id));
-      });
-      await batch.commit();
-
-      const idsToDelete = new Set(ordersToDelete.map(o => o.id));
-      setOrders(prev => prev.filter(o => !idsToDelete.has(o.id)));
-      toast({ title: 'Success', description: `Deleted ${ordersToDelete.length} orders successfully.` });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: `Failed to delete orders: ${error.message}` });
-    }
-  };
-
-  const handleDeleteDateOrders = async (dateStr: string, ordersCount: number) => {
-    const password = window.prompt(`Please enter the admin password to delete all ${ordersCount} orders for this date:`);
-    if (password !== '151571') {
-       if (password !== null) toast({ variant: 'destructive', title: 'Incorrect password', description: 'You cannot delete these orders.' });
-       return;
-    }
-    if (!window.confirm(`Are you sure you want to delete all ${ordersCount} orders for this date? This cannot be undone.`)) return;
-    
-    const ordersToDelete = filteredOrdersList.filter(order => {
-      if (!order.createdAt?.toDate) return false;
-      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
-    });
-
-    try {
-      const batch = writeBatch(db);
-      ordersToDelete.forEach(order => {
-        batch.delete(doc(db, 'orders', order.id));
-      });
-      await batch.commit();
-
-      const idsToDelete = new Set(ordersToDelete.map(o => o.id));
-      setOrders(prev => prev.filter(o => !idsToDelete.has(o.id)));
-      toast({ title: 'Success', description: `Deleted ${ordersToDelete.length} orders successfully.` });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: `Failed to delete orders: ${error.message}` });
-    }
-  };
-
-  const handleSendSMS = (phone: string, type: string, orderDateStr: string) => {
-    let message = '';
-    const today = new Date();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const todayName = days[today.getDay()];
-    
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowName = days[tomorrow.getDay()];
-    
-    if (type === 'holiday') {
-        message = `📢 Order Update – Gajanan Enterprises\n\nToday, ${todayName}, is a holiday.\nYour order will be processed and delivered tomorrow (${tomorrowName}) by 1:00 PM. 🥤🚚\n\nThank you for your understanding and support. 🙏\n\nGajanan Enterprises – Ghataprabha`;
-    } else if (type === 'delivery') {
-        const orderDate = new Date(orderDateStr + 'T00:00:00');
-        const orderDayName = days[orderDate.getDay()];
-        const formattedDate = orderDate.toLocaleDateString('en-GB'); // dd/mm/yyyy
-        message = `📢 Order Update – Gajanan Enterprises\n\nYour order will be delivered on ${formattedDate} (${orderDayName}). 🥤🚚\n\nThank you for your understanding and support. 🙏\n\nGajanan Enterprises – Ghataprabha`;
-    }
-    
-    if (message) {
-        window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_blank');
-    }
-  };
-
   const usersMap = useMemo(() => {
     const map = new Map();
     users.forEach(user => map.set(user.id, user));
     return map;
   }, [users]);
   
-  const ordersCountByLocation = useMemo(() => {
-    let list = statusFilter === 'all' 
-      ? orders.filter(order => order.status !== 'Delivered')
-      : orders.filter(order => order.status === 'Pending');
-
-    if (dateFilter) {
-      const selectedDay = new Date(dateFilter + 'T00:00:00');
-      const startOfDay = selectedDay.getTime();
-      const endOfDay = new Date(selectedDay).setHours(23, 59, 59, 999);
-      
-      list = list.filter(order => {
-        if (!order.createdAt?.toMillis) return false;
-        const ms = order.createdAt.toMillis();
-        return ms >= startOfDay && ms <= endOfDay;
-      });
-    }
-
-    const counts: Record<string, number> = {};
-    let totalCount = 0;
-    
-    list.forEach(order => {
-        const shopInfo = usersMap.get(order.shopId);
-        if (shopInfo && shopInfo.location) {
-            const loc = shopInfo.location;
-            counts[loc] = (counts[loc] || 0) + 1;
-        }
-        totalCount++;
-    });
-
-    return { counts, totalCount };
-  }, [orders, usersMap, statusFilter, dateFilter]);
-
   const filteredOrdersList = useMemo(() => {
-    let list = statusFilter === 'all' 
-      ? orders.filter(order => order.status !== 'Delivered')
-      : orders.filter(order => order.status === 'Pending');
+    // ONLY DELIVERED ORDERS
+    let list = orders.filter(order => order.status === 'Delivered');
 
     if (locationFilter !== 'all') {
       list = list.filter(order => {
@@ -250,7 +107,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     }
 
     return list;
-  }, [orders, usersMap, statusFilter, locationFilter, dateFilter]);
+  }, [orders, usersMap, locationFilter, dateFilter]);
 
   const ordersByDate = useMemo(() => {
     const groupedByDate: { [key: string]: any[] } = {};
@@ -264,8 +121,6 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     });
 
     const processedData = Object.entries(groupedByDate).map(([date, dateOrders]) => {
-      const hasPendingOrdersOnDate = dateOrders.some(order => order.status === 'Pending');
-
       const ordersByShop = dateOrders.reduce((acc, order) => {
         const shopInfo = usersMap.get(order.shopId);
         if (!shopInfo) {
@@ -284,7 +139,6 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
       return {
         date,
         totalOrders: dateOrders.length,
-        hasPending: hasPendingOrdersOnDate,
         shops: Object.values(ordersByShop).map((shopData: any) => ({
             ...shopData,
             orders: shopData.orders.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis()),
@@ -300,7 +154,7 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
   const handleDownloadPdf = () => {
     const doc = new jsPDF('landscape');
     
-    const title = `Customer Orders Report${locationFilter !== 'all' ? ` - ${locationFilter}` : ''}${statusFilter !== 'all' ? ` (${statusFilter})` : ''}`;
+    const title = `Delivered Orders Report${locationFilter !== 'all' ? ` - ${locationFilter}` : ''}`;
       
     doc.text(title, 14, 15);
 
@@ -374,131 +228,79 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
     });
 
     const fileDate = new Date().toLocaleDateString('en-CA');
-    doc.save(`orders_report_${fileDate}.pdf`);
+    doc.save(`delivered_orders_report_${fileDate}.pdf`);
   };
 
 
   return (
     <Card className='print-only-card'>
-      <CardHeader className="flex flex-col gap-4 no-print">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <CardTitle>All Customer Orders</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="w-[140px] h-9 bg-white"
-                />
-                {dateFilter && (
-                  <Button
-                    onClick={() => setDateFilter('')}
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-1.5 text-red-500 hover:text-red-700 hover:bg-transparent"
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
-              <Button 
-                  onClick={() => setStatusFilter('all')} 
-                  variant={statusFilter === 'all' ? 'default' : 'outline'} 
-                  size="sm"
-              >
-                  All Orders
-              </Button>
-              <Button 
-                  onClick={() => setStatusFilter('Pending')} 
-                  variant={statusFilter === 'Pending' ? 'default' : 'outline'} 
-                  size="sm"
-              >
-                  <Filter className="mr-2 h-4 w-4" />
-                  Pending
-              </Button>
-              <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={filteredOrdersList.length === 0}>
-                  <Download className="mr-2 h-4 w-4" />
-                  PDF
-              </Button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 overflow-x-auto py-3 px-2 scrollbar-hide w-full">
-            <Button
-                onClick={() => setLocationFilter('all')}
-                variant={locationFilter === 'all' ? 'default' : 'outline'}
-                size="sm"
-                className="whitespace-nowrap rounded-full relative"
-            >
-                All Locations
-            </Button>
-            {locations.map((loc: string) => (
-                <Button
-                    key={loc}
-                    onClick={() => setLocationFilter(loc)}
-                    variant={locationFilter === loc ? 'default' : 'outline'}
-                    size="sm"
-                    className="whitespace-nowrap rounded-full relative"
-                >
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 no-print">
+        <CardTitle>Delivered Orders</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+            <Select onValueChange={(value) => setLocationFilter(value)} value={locationFilter}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {locations.map((loc: string) => (
+                  <SelectItem key={loc} value={loc}>
                     {loc}
-                    {ordersCountByLocation.counts[loc] > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] flex items-center justify-center z-10 shadow-sm">
-                            {ordersCountByLocation.counts[loc]}
-                        </span>
-                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1">
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-[140px] h-9 bg-white"
+              />
+              {dateFilter && (
+                <Button
+                  onClick={() => setDateFilter('')}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-1.5 text-red-500 hover:text-red-700 hover:bg-transparent"
+                >
+                  Clear
                 </Button>
-            ))}
+              )}
+            </div>
+            
+            <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={filteredOrdersList.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                PDF
+            </Button>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         {loading && initialOrders.length === 0 ? (
             <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin" /></div>
+        ) : filteredOrdersList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                <CheckCircle2 className="h-12 w-12 text-gray-300 mb-2" />
+                <p>No delivered orders found.</p>
+            </div>
         ) : (
           <Accordion type="multiple" className="w-full space-y-4 min-w-[600px] md:min-w-full">
-            {ordersByDate.map(({ date, totalOrders, shops, hasPending }) => (
+            {ordersByDate.map(({ date, totalOrders, shops }) => (
               <AccordionItem value={date} key={date} className="border-0 rounded-lg bg-white shadow-sm">
                 <AccordionTrigger className="p-4 hover:no-underline no-print rounded-t-lg border-b">
                   <div className="flex w-full items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Calendar className="h-5 w-5 text-gray-600" />
                         <span className="text-lg font-semibold text-left">{new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                         {hasPending && (
-                            <span className="ml-2 inline-flex items-center gap-1.5 animate-blink text-red-600 font-bold">
-                                <Clock className="h-4 w-4" />
-                                Pending
-                            </span>
-                          )}
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="hidden sm:flex mr-2" onClick={(e) => e.stopPropagation()}>
-                            <select
-                                className="h-8 text-xs border border-input rounded-md px-2 bg-background hover:bg-accent hover:text-accent-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer"
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        handleBulkStatusChangeForDate(date, e.target.value);
-                                        e.target.value = '';
-                                    }
-                                }}
-                            >
-                                <option value="">Bulk Update All...</option>
-                                <option value="Pending">Mark All Pending</option>
-                                <option value="Confirmed">Mark All Confirmed</option>
-                                <option value="Delivered">Mark All Delivered</option>
-                            </select>
-                        </div>
-                        <Button asChild variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 hidden sm:flex mr-2 no-print cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDateOrders(date, totalOrders); }}>
-                            <div role="button">
-                                <Trash2 className="h-4 w-4" />
-                            </div>
-                        </Button>
-                        <span className="px-3 py-1 text-sm font-bold text-primary bg-primary/10 rounded-full hidden sm:inline-block">{totalOrders} orders</span>
+                        <span className="px-3 py-1 text-sm font-bold text-green-700 bg-green-100 rounded-full hidden sm:inline-block">{totalOrders} delivered</span>
                     </div>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-0">
                   <Accordion type="multiple" className="w-full">
                     {shops.map(({ shopInfo, orders }) => {
-                      const hasPending = orders.some((order: any) => order.status === 'Pending');
                       return (
                       <AccordionItem value={shopInfo.id} key={shopInfo.id} className="border-t">
                          <div className="flex items-center p-4">
@@ -509,12 +311,6 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                       <div className="text-left">
                                           <div className="font-semibold text-base">
                                             {shopInfo.shopName}
-                                             {hasPending && (
-                                              <span className="ml-2 inline-flex items-center gap-1.5 animate-blink text-red-600 font-bold">
-                                                  <Clock className="h-4 w-4" />
-                                                  Pending
-                                              </span>
-                                            )}
                                           </div>
                                           <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                               <span>{shopInfo.location}</span>
@@ -522,50 +318,24 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                       </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                      <div className="px-2 py-1 text-xs font-bold text-green-800 bg-green-100 rounded-full inline-block">{orders.length} order(s)</div>
-                                      <Button asChild variant="outline" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 no-print cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteShopOrders(shopInfo.id, date, orders.length); }}>
-                                          <div role="button">
-                                              <Trash2 className="h-4 w-4" />
-                                          </div>
-                                      </Button>
+                                      <div className="px-2 py-1 text-xs font-bold text-gray-600 bg-gray-100 rounded-full inline-block">{orders.length} order(s)</div>
                                   </div>
                               </div>
                           </AccordionTrigger>
                            {shopInfo.phoneNumber && (
-                                <div className="ml-2 flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                    <a href={`tel:${shopInfo.phoneNumber}`}>
-                                        <Button variant="outline" size="icon" className="h-8 w-8">
-                                            <Phone className="h-4 w-4" />
-                                            <span className="sr-only">Call {shopInfo.shopName}</span>
-                                        </Button>
-                                    </a>
-                                    <div className="relative h-8 w-8" title="Send SMS">
-                                        <Button variant="outline" size="icon" className="h-8 w-8 absolute inset-0 pointer-events-none">
-                                            <MessageSquare className="h-4 w-4" />
-                                        </Button>
-                                        <select
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            value=""
-                                            onChange={(e) => {
-                                                if (e.target.value) {
-                                                    handleSendSMS(shopInfo.phoneNumber, e.target.value, date);
-                                                    e.target.value = '';
-                                                }
-                                            }}
-                                        >
-                                            <option value="" disabled>Send SMS...</option>
-                                            <option value="delivery">Delivery Update</option>
-                                            <option value="holiday">Holiday Update</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                <a href={`tel:${shopInfo.phoneNumber}`} className="ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="outline" size="icon" className="h-8 w-8">
+                                        <Phone className="h-4 w-4" />
+                                        <span className="sr-only">Call {shopInfo.shopName}</span>
+                                    </Button>
+                                </a>
                             )}
                         </div>
                         <AccordionContent className="pb-2 px-4 bg-gray-50/50">
                             {orders.map((order: any) => {
                                 const totalAmount = order.items.reduce((acc: number, item: any) => acc + (item.quantity * (item.rate || 0)), 0);
                                 return (
-                                <div key={order.id} className="mb-4 border rounded-lg p-4 bg-white mt-2">
+                                <div key={order.id} className="mb-4 border rounded-lg p-4 bg-white mt-2 border-green-200 shadow-sm">
                                     <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
                                         <div>
                                             <div className='flex items-center gap-2'>
