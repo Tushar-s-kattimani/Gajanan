@@ -1,6 +1,7 @@
 'use client';
 
 import { useCart } from '@/context/cart-context';
+import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
@@ -68,10 +69,12 @@ const CountdownTimer = ({ expiry }: { expiry: number }) => {
 };
 
 export function NewOrder({ products: initialProducts = [], loading, searchQuery = '' }: { products: any[], loading: boolean, searchQuery?: string }) {
+  const { user } = useUser();
   const { cart, addToCart, updateQuantity, clearCart } = useCart();
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   
+  const [shopUser, setShopUser] = useState<any>(null);
   const [adSettings, setAdSettings] = useState<any>(null);
   
   const [categories, setCategories] = useState<any[]>([]);
@@ -97,6 +100,16 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
   }, []);
   
   useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        setShopUser(docSnap.data());
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'advertisement'), (docSnap) => {
       if (docSnap.exists()) {
         setAdSettings(docSnap.data());
@@ -104,6 +117,10 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
     });
     return () => unsub();
   }, []);
+
+  const effectiveAdSettings = shopUser?.customAd?.isCustom 
+    ? { isActive: true, ...shopUser.customAd } 
+    : adSettings;
   
   const cartTotal = cart.reduce((total, item) => total + ((item.rate || 0) * item.quantity), 0);
   const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
@@ -175,16 +192,16 @@ export function NewOrder({ products: initialProducts = [], loading, searchQuery 
         <Card className="shadow-none border-none bg-transparent">
             
             {/* Top Advertisement Banner */}
-            {adSettings?.isActive && (
+            {effectiveAdSettings?.isActive && (
               <div className="mb-4 overflow-hidden">
                 <div className="animate-ad-slide">
-                  {adSettings.type === 'image' && adSettings.imageUrl ? (
+                  {effectiveAdSettings.type === 'image' && effectiveAdSettings.imageUrl ? (
                     <div className="w-full h-32 sm:h-48 md:h-64 rounded-none sm:rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-                      <img src={getCleanImageUrl(adSettings.imageUrl)} alt="Advertisement" className="w-full h-full object-cover animate-item-float" />
+                      <img src={getCleanImageUrl(effectiveAdSettings.imageUrl)} alt="Advertisement" className="w-full h-full object-cover animate-item-float" />
                     </div>
-                  ) : adSettings.type === 'product' && adSettings.productId ? (
+                  ) : effectiveAdSettings.type === 'product' && effectiveAdSettings.productId ? (
                     (() => {
-                      const adProduct = products.find(p => p.id === adSettings.productId);
+                      const adProduct = products.find(p => p.id === effectiveAdSettings.productId);
                       if (!adProduct) return null;
                       const hasActiveAdOffer = adProduct.offerExpiry && adProduct.offerRate && adProduct.offerExpiry > Date.now();
                       const displayAdRate = hasActiveAdOffer ? adProduct.offerRate : adProduct.rate;

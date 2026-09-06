@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, User as UserIcon, MessageSquare, Tag, CheckCircle, Ban, PlayCircle, Trash2, Megaphone, Smartphone, Download } from 'lucide-react';
+import { Loader2, User as UserIcon, MessageSquare, Tag, CheckCircle, Ban, PlayCircle, Trash2, Megaphone, Smartphone, Download, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
@@ -21,6 +21,10 @@ export function ShopManagement({ users = [], products = [], loading }: { users: 
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const [adDialogOpen, setAdDialogOpen] = useState(false);
+  const [currentShopAd, setCurrentShopAd] = useState<any>(null);
+  const [shopAd, setShopAd] = useState({ isCustom: false, type: 'image', imageUrl: '', productId: 'none' });
 
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [adTab, setAdTab] = useState('calendar');
@@ -175,6 +179,19 @@ export function ShopManagement({ users = [], products = [], loading }: { users: 
       toast({ variant: 'destructive', title: 'Failed to generate poster' });
     } finally {
       setIsGeneratingPoster(false);
+    }
+  };
+
+  const handleSaveCustomAd = async () => {
+    if (!currentShopAd) return;
+    try {
+      await updateDoc(doc(db, 'users', currentShopAd.id), {
+        customAd: shopAd
+      });
+      toast({ title: 'Success', description: 'Custom ad settings saved for shop.' });
+      setAdDialogOpen(false);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error saving ad settings', description: e.message });
     }
   };
 
@@ -409,6 +426,89 @@ export function ShopManagement({ users = [], products = [], loading }: { users: 
               ))}
             </SelectContent>
           </Select>
+          
+          <Dialog open={adDialogOpen} onOpenChange={setAdDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Custom Shop Advertisement</DialogTitle>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="isCustom"
+                    checked={shopAd.isCustom}
+                    onChange={(e) => setShopAd({...shopAd, isCustom: e.target.checked})}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
+                  />
+                  <Label htmlFor="isCustom" className="font-semibold cursor-pointer">Enable Custom Ad for this Shop</Label>
+                </div>
+                
+                {shopAd.isCustom && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Advertisement Type</Label>
+                      <Select 
+                        value={shopAd.type} 
+                        onValueChange={(val) => setShopAd({...shopAd, type: val as 'image'|'product'})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="image">Custom Banner Image</SelectItem>
+                          <SelectItem value="product">Promote a Product</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {shopAd.type === 'image' && (
+                      <div className="space-y-2">
+                        <Label>Banner Image URL</Label>
+                        <Input 
+                          placeholder="e.g. /promos/banner1.jpg" 
+                          value={shopAd.imageUrl}
+                          onChange={(e) => setShopAd({...shopAd, imageUrl: e.target.value})}
+                        />
+                        <p className="text-xs text-muted-foreground">URL can be external or a path in the public folder.</p>
+                      </div>
+                    )}
+
+                    {shopAd.type === 'product' && (
+                      <div className="space-y-2">
+                        <Label>Select Product to Promote</Label>
+                        <Select 
+                          value={shopAd.productId} 
+                          onValueChange={(val) => setShopAd({...shopAd, productId: val})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a product" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-56 overflow-y-auto">
+                            <SelectItem value="none">-- Select a Product --</SelectItem>
+                            {products?.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {!shopAd.isCustom && (
+                  <div className="p-3 bg-blue-50 text-blue-800 text-sm rounded-md border border-blue-200">
+                    When custom ad is disabled, this shop will display the default Advertisement Banner set in the Product Management page.
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAdDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSaveCustomAd}>Save Settings</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
@@ -521,6 +621,19 @@ export function ShopManagement({ users = [], products = [], loading }: { users: 
                         </Button>
                       </a>
                     )}
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      title="Custom Shop Ad"
+                      onClick={() => { 
+                        setCurrentShopAd(user); 
+                        setShopAd(user.customAd || { isCustom: false, type: 'image', imageUrl: '', productId: 'none' }); 
+                        setAdDialogOpen(true); 
+                      }}
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
                     
                     <Button
                       size="sm"

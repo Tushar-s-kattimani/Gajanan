@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
@@ -31,6 +32,11 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Pending'>('Pending');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
+
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsSelectedDate, setSmsSelectedDate] = useState<string>('');
+  const [smsType, setSmsType] = useState<'delivery' | 'holiday' | null>(null);
 
   const locations = useMemo(() => {
     const locSet = new Set<string>();
@@ -164,27 +170,56 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
   };
 
   const handleSendSMS = (phone: string, type: string, orderDateStr: string) => {
-    let message = '';
-    const today = new Date();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const todayName = days[today.getDay()];
-    
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowName = days[tomorrow.getDay()];
-    
-    if (type === 'holiday') {
-        message = `📢 Order Update – Gajanan Enterprises\n\nToday, ${todayName}, is a holiday.\nYour order will be processed and delivered tomorrow (${tomorrowName}) by 1:00 PM. 🥤🚚\n\nThank you for your understanding and support. 🙏\n\nGajanan Enterprises – Ghataprabha`;
-    } else if (type === 'delivery') {
-        const orderDate = new Date(orderDateStr + 'T00:00:00');
-        const orderDayName = days[orderDate.getDay()];
-        const formattedDate = orderDate.toLocaleDateString('en-GB'); // dd/mm/yyyy
-        message = `📢 Order Update – Gajanan Enterprises\n\nYour order will be delivered on ${formattedDate} (${orderDayName}). 🥤🚚\n\nThank you for your understanding and support. 🙏\n\nGajanan Enterprises – Ghataprabha`;
+    setSmsPhone(phone);
+    setSmsSelectedDate('');
+    setSmsType(type as 'delivery' | 'holiday');
+    setSmsDialogOpen(true);
+  };
+
+  const confirmSendSMS = () => {
+     if (!smsSelectedDate || !smsType) return;
+     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+     const selectedDateObj = new Date(smsSelectedDate + 'T00:00:00');
+     const selectedDayName = days[selectedDateObj.getDay()];
+     const formattedDate = selectedDateObj.toLocaleDateString('en-GB'); // dd/mm/yyyy
+     
+     let message = '';
+     if (smsType === 'holiday') {
+        const nextDateObj = new Date(selectedDateObj);
+        nextDateObj.setDate(nextDateObj.getDate() + 1);
+        const nextDayName = days[nextDateObj.getDay()];
+        
+        message = `📢 Order Update – Gajanan Enterprises\n\nToday, ${selectedDayName}, is a holiday.\nYour order will be processed and delivered tomorrow (${nextDayName}) by 1:00 PM. 🥤🚚\n\nThank you for your understanding and support. 🙏\n\nGajanan Enterprises – Ghataprabha`;
+     } else {
+        message = `📢 Order Update – Gajanan Enterprises\n\nYour order will be delivered on ${formattedDate} (${selectedDayName}). 🥤🚚\n\nThank you for your understanding and support. 🙏\n\nGajanan Enterprises – Ghataprabha`;
+     }
+     
+     window.open(`sms:${smsPhone}?body=${encodeURIComponent(message)}`, '_blank');
+     setSmsDialogOpen(false);
+  };
+
+  const handleBulkSendSMS = (dateStr: string, type: string) => {
+    const ordersForDate = filteredOrdersList.filter(order => {
+      if (!order.createdAt?.toDate) return false;
+      return order.createdAt.toDate().toLocaleDateString('en-CA') === dateStr;
+    });
+
+    const phonesSet = new Set<string>();
+    ordersForDate.forEach(order => {
+        const shopInfo = usersMap.get(order.shopId);
+        if (shopInfo && shopInfo.phoneNumber) {
+            phonesSet.add(shopInfo.phoneNumber);
+        }
+    });
+
+    const phonesArray = Array.from(phonesSet);
+    if (phonesArray.length === 0) {
+        toast({ title: 'No Phone Numbers', description: 'No phone numbers found for shops with orders on this date.' });
+        return;
     }
-    
-    if (message) {
-        window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_blank');
-    }
+
+    const phonesJoined = phonesArray.join(',');
+    handleSendSMS(phonesJoined, type, dateStr);
   };
 
   const usersMap = useMemo(() => {
@@ -486,6 +521,21 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
                                 <option value="Delivered">Mark All Delivered</option>
                             </select>
                         </div>
+                        <div className="hidden sm:flex mr-2" onClick={(e) => e.stopPropagation()}>
+                            <select
+                                className="h-8 text-xs border border-input rounded-md px-2 bg-background hover:bg-accent hover:text-accent-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer"
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        handleBulkSendSMS(date, e.target.value);
+                                        e.target.value = '';
+                                    }
+                                }}
+                            >
+                                <option value="">Bulk SMS...</option>
+                                <option value="delivery">Delivery Update</option>
+                                <option value="holiday">Holiday Update</option>
+                            </select>
+                        </div>
                         <Button asChild variant="outline" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 hidden sm:flex mr-2 no-print cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDateOrders(date, totalOrders); }}>
                             <div role="button">
                                 <Trash2 className="h-4 w-4" />
@@ -645,6 +695,25 @@ export function AllOrders({ orders: initialOrders = [], users = [], loading }: {
           </Accordion>
         )}
       </CardContent>
+      <Dialog open={smsDialogOpen} onOpenChange={setSmsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{smsType === 'holiday' ? 'Select Holiday Date' : 'Select Delivery Date'}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+               type="date" 
+               value={smsSelectedDate} 
+               onChange={(e) => setSmsSelectedDate(e.target.value)} 
+               className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSmsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={confirmSendSMS} disabled={!smsSelectedDate}>Send SMS</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
