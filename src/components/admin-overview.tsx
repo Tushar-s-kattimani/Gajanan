@@ -103,8 +103,11 @@ export function AdminOverview({ orders = [], products = [], users = [], loading 
   const confirmedOrders = orders.filter(o => o.status === 'Confirmed').length;
   const deliveredOrdersCount = orders.filter(o => o.status === 'Delivered').length;
 
-  const outOfStockItems = products.filter(p => p.stock === 0).length;
-  const lowStockItems = products.filter(p => p.stock > 0 && p.stock <= 100).length;
+  const outOfStockProducts = products.filter(p => p.stock === 0);
+  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 100);
+  
+  const outOfStockItems = outOfStockProducts.length;
+  const lowStockItems = lowStockProducts.length;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -209,20 +212,63 @@ export function AdminOverview({ orders = [], products = [], users = [], loading 
             </Card>
              <PendingOrders orders={orders} users={users} />
         </div>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Top Products by Units Sold</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[24rem] sm:h-[28.5rem]">
-              {chartData.productSalesData.labels.length > 0 ? (
-                <Bar data={chartData.productSalesData} options={{ responsive: true, maintainAspectRatio: false, indexAxis: 'y' }} />
-              ) : (
-                <div className="flex h-full items-center justify-center text-gray-500">No product sales data available.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2 grid grid-cols-1 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Products by Units Sold</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[24rem] sm:h-[28.5rem]">
+                {chartData.productSalesData.labels.length > 0 ? (
+                  <Bar data={chartData.productSalesData} options={{ responsive: true, maintainAspectRatio: false, indexAxis: 'y' }} />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-gray-500">No product sales data available.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+               <CardTitle className="text-red-600 flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Inventory Alerts</CardTitle>
+            </CardHeader>
+            <CardContent>
+               <div className="space-y-4 max-h-[24rem] overflow-y-auto pr-2">
+                  {outOfStockProducts.length === 0 && lowStockProducts.length === 0 && (
+                     <div className="text-center text-sm text-gray-500 py-4">All inventory levels are healthy.</div>
+                  )}
+                  
+                  {outOfStockProducts.length > 0 && (
+                     <div>
+                        <h4 className="font-semibold text-sm text-red-800 mb-2 border-b border-red-100 pb-1">Out of Stock</h4>
+                        <ul className="space-y-2">
+                           {outOfStockProducts.map(p => (
+                              <li key={p.id} className="flex justify-between items-center text-sm bg-red-50 p-2 rounded">
+                                 <span className="font-medium text-gray-800">{p.name} <span className="text-xs text-gray-500">({p.size})</span></span>
+                                 <span className="text-red-700 font-bold bg-white px-2 py-0.5 rounded border border-red-200">0</span>
+                              </li>
+                           ))}
+                        </ul>
+                     </div>
+                  )}
+                  
+                  {lowStockProducts.length > 0 && (
+                     <div>
+                        <h4 className="font-semibold text-sm text-yellow-800 mb-2 border-b border-yellow-100 pb-1 mt-4">Low Stock (≤100)</h4>
+                        <ul className="space-y-2">
+                           {lowStockProducts.map(p => (
+                              <li key={p.id} className="flex justify-between items-center text-sm bg-yellow-50 p-2 rounded">
+                                 <span className="font-medium text-gray-800">{p.name} <span className="text-xs text-gray-500">({p.size})</span></span>
+                                 <span className="text-yellow-700 font-bold bg-white px-2 py-0.5 rounded border border-yellow-200">{p.stock}</span>
+                              </li>
+                           ))}
+                        </ul>
+                     </div>
+                  )}
+               </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
        <div className="grid grid-cols-1 gap-8">
